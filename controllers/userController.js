@@ -24,7 +24,14 @@ exports.register = async (req, res) => {
         message: '用户名已存在'
       });
     }
-
+    // 检查手机号是否已被注册
+    const existingPhone = await User.findByPhone(phone);
+    if (existingPhone) {
+      return res.status(200).json({
+        code: 409,
+        message: '该手机号已被注册'
+      });
+    }
     // 创建用户
     const newUser = await User.create({
       username,
@@ -56,27 +63,27 @@ exports.login = async (req, res) => {
 
     // 参数验证
     if (!username || !password) {
-      return res.status(400).json({
+      return res.status(200).json({
         code: 400,
         message: '用户名和密码为必填项'
       });
     }
 
-    // 查找用户
-    const user = await User.findByUsername(username);
+    // 查找用户（支持用户名或手机号）
+    const user = await User.findByUsernameOrPhone(username);
     if (!user) {
-      return res.status(401).json({
+      return res.status(200).json({
         code: 401,
-        message: '用户名或密码错误'
+        message: '用户名/手机号或密码错误'
       });
     }
 
     // 验证密码
     const isPasswordValid = await User.verifyPassword(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({
+      return res.status(200).json({
         code: 401,
-        message: '用户名或密码错误'
+        message: '用户名/手机号或密码错误'
       });
     }
 

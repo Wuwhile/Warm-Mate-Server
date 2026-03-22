@@ -40,8 +40,38 @@ class User {
   }
 
   /**
-   * 根据ID查找用户
+   * 根据手机号查找用户
    */
+  static async findByPhone(phone) {
+    const conn = await pool.getConnection();
+    try {
+      const [rows] = await conn.execute(
+        'SELECT * FROM users WHERE phone = ?',
+        [phone]
+      );
+      return rows.length > 0 ? rows[0] : null;
+    } finally {
+      conn.release();
+    }
+  }
+
+  /**
+   * 根据用户名或手机号查找用户
+   */
+  static async findByUsernameOrPhone(usernameOrPhone) {
+    const conn = await pool.getConnection();
+    try {
+      const [rows] = await conn.execute(
+        'SELECT * FROM users WHERE username = ? OR phone = ?',
+        [usernameOrPhone, usernameOrPhone]
+      );
+      return rows.length > 0 ? rows[0] : null;
+    } finally {
+      conn.release();
+    }
+  }
+
+  /**
   static async findById(id) {
     const conn = await pool.getConnection();
     try {
