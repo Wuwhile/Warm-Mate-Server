@@ -684,6 +684,69 @@ exports.uploadAvatar = async (req, res) => {
 };
 
 /**
+ * 上传头像文件（处理multipart/form-data）
+ * 用于小程序/原生App环境
+ */
+exports.uploadAvatarFile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // 检查是否上传了文件
+    if (!req.file) {
+      return res.status(400).json({
+        code: 400,
+        message: '未选择头像文件'
+      });
+    }
+
+    // 验证文件类型
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    if (!allowedMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        code: 400,
+        message: '不支持的文件类型，仅支持PNG、JPG、GIF、WEBP'
+      });
+    }
+
+    // 验证文件大小（5MB）
+    if (req.file.size > 5 * 1024 * 1024) {
+      return res.status(400).json({
+        code: 400,
+        message: '头像文件过大，不超过5MB'
+      });
+    }
+
+    // 将文件转换为Base64
+    const base64Data = req.file.buffer.toString('base64');
+    const mimeType = req.file.mimetype;
+    const avatarDataUrl = `data:${mimeType};base64,${base64Data}`;
+
+    // 保存头像URL到数据库
+    const success = await User.updateAvatar(userId, avatarDataUrl);
+    if (!success) {
+      return res.status(500).json({
+        code: 500,
+        message: '保存头像失败'
+      });
+    }
+
+    return res.json({
+      code: 200,
+      message: '头像上传成功',
+      data: {
+        avatar_url: avatarDataUrl
+      }
+    });
+  } catch (error) {
+    console.error('上传头像文件错误:', error);
+    return res.status(500).json({
+      code: 500,
+      message: '上传头像失败: ' + error.message
+    });
+  }
+};
+
+/**
  * 提取设备信息的辅助函数
  */
 function extractDeviceInfo(userAgent) {

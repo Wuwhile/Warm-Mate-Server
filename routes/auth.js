@@ -1,6 +1,13 @@
 const express = require('express');
+const multer = require('multer');
 const userController = require('../controllers/userController');
 const { authenticateToken } = require('../middleware/auth');
+
+// 配置 multer 用于内存存储（不保存到磁盘）
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB 限制
+});
 
 const router = express.Router();
 
@@ -116,5 +123,13 @@ router.get('/user/account', authenticateToken, userController.getUserInfo);
  * 请求体: { avatar: "data:image/png;base64,..." }
  */
 router.post('/user/avatar', authenticateToken, userController.uploadAvatar);
+
+/**
+ * 上传头像文件（需要认证）- 用于小程序/原生App
+ * POST /user/avatar/file
+ * 请求头: Authorization: Bearer <token>
+ * 请求体: multipart/form-data，field name: avatar
+ */
+router.post('/user/avatar/file', authenticateToken, upload.single('avatar'), userController.uploadAvatarFile);
 
 module.exports = router;
