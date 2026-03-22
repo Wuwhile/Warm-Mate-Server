@@ -530,6 +530,93 @@ exports.clearLoginLogs = async (req, res) => {
 };
 
 /**
+ * 修改密码（需要认证）
+ */
+exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { oldPassword, newPassword } = req.body;
+
+    // 参数验证
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        code: 400,
+        message: '旧密码和新密码不能为空'
+      });
+    }
+
+    // 新密码格式验证
+    if (newPassword.length < 8 || newPassword.length > 32) {
+      return res.status(400).json({
+        code: 400,
+        message: '新密码长度必须在 8-32 个字符之间'
+      });
+    }
+
+    // 检查是否包含大小写字母、数字和特殊字符
+    const hasUpperCase = /[A-Z]/.test(newPassword);
+    const hasLowerCase = /[a-z]/.test(newPassword);
+    const hasDigit = /\d/.test(newPassword);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(newPassword);
+
+    const strengthCount = [hasUpperCase, hasLowerCase, hasDigit, hasSpecialChar].filter(Boolean).length;
+    
+    if (strengthCount < 3) {
+      return res.status(400).json({
+        code: 400,
+        message: '新密码强度不足，需要包含大小写字母、数字和特殊字符中的至少 3 种'
+      });
+    }
+
+    // 新密码不能与旧密码相同
+    if (oldPassword === newPassword) {
+      return res.status(400).json({
+        code: 400,
+        message: '新密码不能与现有密码相同'
+      });
+    }
+
+    // 获取用户信息
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        code: 404,
+        message: '用户不存在'
+      });
+    }
+
+    // 验证旧密码
+    const isPasswordValid = await User.verifyPassword(oldPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        code: 400,
+        message: '当前密码不正确'
+      });
+    }
+
+    // 更新密码
+    const success = await User.changePassword(userId, newPassword);
+    if (!success) {
+      return res.status(500).json({
+        code: 500,
+        message: '修改密码失败'
+      });
+    }
+
+    return res.json({
+      code: 200,
+      message: '密码修改成功，请重新登录'
+    });
+  } catch (error) {
+    console.error('修改密码错误:', error);
+    return res.status(500).json({
+      code: 500,
+      message: '修改密码失败: ' + error.message
+    });
+  }
+};
+
+/**
  * 提取设备信息的辅助函数
  */
 function extractDeviceInfo(userAgent) {

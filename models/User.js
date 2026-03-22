@@ -148,6 +148,24 @@ class User {
       conn.release();
     }
   }
+
+  /**
+   * 修改密码
+   */
+  static async changePassword(id, newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    const conn = await pool.getConnection();
+    try {
+      const [result] = await conn.execute(
+        'UPDATE users SET password = ? WHERE id = ?',
+        [hashedPassword, id]
+      );
+      return result.affectedRows > 0;
+    } finally {
+      conn.release();
+    }
+  }
 }
 
 module.exports = User;

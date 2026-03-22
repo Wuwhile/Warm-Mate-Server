@@ -62,4 +62,12 @@ router.post('/user/login-logs/delete', authenticateToken, userController.deleteL
  */
 router.post('/user/login-logs/clear', authenticateToken, userController.clearLoginLogs);
 
+/**
+ * 修改密码（需要认证）
+ * POST /user/password/change
+ * 请求头: Authorization: Bearer <token>
+ * 请求体: { oldPassword, newPassword }
+ */
+router.post('/user/password/change', authenticateToken, userController.changePassword);
+
 module.exports = router;

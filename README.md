@@ -269,7 +269,34 @@ Authorization: Bearer <token>
   "code": 200,
   "message": "清空成功"
 }
-  }
+```
+
+#### 修改密码（需要认证）
+```
+POST /user/password/change
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "oldPassword": "OldPass123!",
+  "newPassword": "NewPass123!"
+}
+
+密码要求：
+- 长度：8-32 个字符
+- 必须包含大写字母、小写字母、数字、特殊字符中的至少 3 种
+- 新密码不能与旧密码相同
+
+成功响应 (200):
+{
+  "code": 200,
+  "message": "密码修改成功，请重新登录"
+}
+
+失败響應 (400):
+{
+  "code": 400,
+  "message": "当前密码不正确" // 或其他错误信息
 }
 ```
 
@@ -340,6 +367,14 @@ Authorization: Bearer <token>
 | NODE_ENV | development | 运行环境 |
 
 ## 🔄 版本更新记录
+
+### v1.0.4 (2026-03-22)
+- ✅ 实现修改密码功能
+  - 新增修改密码 API（/user/password/change）
+  - 验证旧密码
+  - 新密码强度验证（需要包含大小写字母、数字和特殊字符中的至少 3 种）
+  - 防止新密码与旧密码相同
+  - 修改成功后需要重新登录
 
 ### v1.0.3 (2026-03-22)
 - ✅ 实现登录日志功能
