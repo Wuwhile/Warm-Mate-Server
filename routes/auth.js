@@ -70,4 +70,43 @@ router.post('/user/login-logs/clear', authenticateToken, userController.clearLog
  */
 router.post('/user/password/change', authenticateToken, userController.changePassword);
 
+/**
+ * 发送邮箱验证码（需要认证）
+ * POST /user/email/code
+ * 请求头: Authorization: Bearer <token>
+ * 请求体: { email }
+ */
+router.post('/user/email/code', authenticateToken, userController.sendEmailCode);
+
+/**
+ * 更新邮箱（需要认证）
+ * PUT /user/email
+ * 请求头: Authorization: Bearer <token>
+ * 请求体: { email, code }
+ */
+router.put('/user/email', authenticateToken, userController.updateEmail);
+
+/**
+ * 发送手机验证码（需要认证）
+ * POST /user/phone/code
+ * 请求头: Authorization: Bearer <token>
+ * 请求体: { phone }
+ */
+router.post('/user/phone/code', authenticateToken, userController.sendPhoneCode);
+
+/**
+ * 更新手机号（需要认证）
+ * PUT /user/phone
+ * 请求头: Authorization: Bearer <token>
+ * 请求体: { phone, code }
+ */
+router.put('/user/phone', authenticateToken, userController.updatePhone);
+
+/**
+ * 获取账户信息（需要认证）
+ * GET /user/account
+ * 请求头: Authorization: Bearer <token>
+ */
+router.get('/user/account', authenticateToken, userController.getUserInfo);
+
 module.exports = router;
