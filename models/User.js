@@ -72,6 +72,8 @@ class User {
   }
 
   /**
+   * 根据ID查找用户
+   */
   static async findById(id) {
     const conn = await pool.getConnection();
     try {
@@ -79,7 +81,12 @@ class User {
         'SELECT id, username, phone, email, created_at FROM users WHERE id = ?',
         [id]
       );
-      return rows.length > 0 ? rows[0] : null;
+      if (rows.length > 0) {
+        const user = rows[0];
+        user.uid = 100000000 + user.id;
+        return user;
+      }
+      return null;
     } finally {
       conn.release();
     }
@@ -98,11 +105,31 @@ class User {
   static async update(id, userData) {
     const conn = await pool.getConnection();
     try {
-      const { phone, email, username } = userData;
-      await conn.execute(
-        'UPDATE users SET phone = ?, email = ?, username = ? WHERE id = ?',
-        [phone, email, username, id]
-      );
+      // 动态构建UPDATE语句，只更新提供的字段
+      const fields = [];
+      const values = [];
+      
+      if (userData.username !== undefined) {
+        fields.push('username = ?');
+        values.push(userData.username);
+      }
+      if (userData.phone !== undefined) {
+        fields.push('phone = ?');
+        values.push(userData.phone);
+      }
+      if (userData.email !== undefined) {
+        fields.push('email = ?');
+        values.push(userData.email);
+      }
+
+      if (fields.length === 0) {
+        return await this.findById(id);
+      }
+
+      values.push(id);
+      const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+      
+      await conn.execute(sql, values);
       return await this.findById(id);
     } finally {
       conn.release();
