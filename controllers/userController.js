@@ -570,7 +570,7 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    // 获取用户完整信息（包括密码）用于验证
+    // 获取用户信息（直接查询包括密码字段）
     const pool = require('../config/database');
     const conn = await pool.getConnection();
     let userWithPassword;
