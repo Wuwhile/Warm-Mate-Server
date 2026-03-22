@@ -78,7 +78,7 @@ class User {
     const conn = await pool.getConnection();
     try {
       const [rows] = await conn.execute(
-        'SELECT id, username, phone, email, created_at FROM users WHERE id = ?',
+        'SELECT id, username, phone, email, avatar_url, created_at FROM users WHERE id = ?',
         [id]
       );
       if (rows.length > 0) {
@@ -121,6 +121,10 @@ class User {
         fields.push('email = ?');
         values.push(userData.email);
       }
+      if (userData.avatar_url !== undefined) {
+        fields.push('avatar_url = ?');
+        values.push(userData.avatar_url);
+      }
 
       if (fields.length === 0) {
         return await this.findById(id);
@@ -160,6 +164,22 @@ class User {
       const [result] = await conn.execute(
         'UPDATE users SET password = ? WHERE id = ?',
         [hashedPassword, id]
+      );
+      return result.affectedRows > 0;
+    } finally {
+      conn.release();
+    }
+  }
+
+  /**
+   * 更新头像URL
+   */
+  static async updateAvatar(id, avatarUrl) {
+    const conn = await pool.getConnection();
+    try {
+      const [result] = await conn.execute(
+        'UPDATE users SET avatar_url = ? WHERE id = ?',
+        [avatarUrl, id]
       );
       return result.affectedRows > 0;
     } finally {

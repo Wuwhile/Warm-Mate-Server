@@ -109,4 +109,12 @@ router.put('/user/phone', authenticateToken, userController.updatePhone);
  */
 router.get('/user/account', authenticateToken, userController.getUserInfo);
 
+/**
+ * 上传头像（需要认证）
+ * POST /user/avatar
+ * 请求头: Authorization: Bearer <token>
+ * 请求体: { avatar: "data:image/png;base64,..." }
+ */
+router.post('/user/avatar', authenticateToken, userController.uploadAvatar);
+
 module.exports = router;
