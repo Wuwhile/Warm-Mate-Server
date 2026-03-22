@@ -44,6 +44,19 @@ CREATE TABLE IF NOT EXISTS messages (
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息表';
 
+-- 登录日志表
+CREATE TABLE IF NOT EXISTS login_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT '登录日志ID',
+  user_id INT NOT NULL COMMENT '用户ID',
+  ip_address VARCHAR(45) COMMENT 'IP地址',
+  device_info VARCHAR(255) COMMENT '设备信息',
+  user_agent TEXT COMMENT 'User Agent信息',
+  login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '登录时间',
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user_id (user_id),
+  INDEX idx_login_time (login_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='登录日志表';
+
 -- 创建应用用户（用于应用连接）
 CREATE USER IF NOT EXISTS 'warmmate'@'localhost' IDENTIFIED BY 'warmmate123@';
 GRANT ALL PRIVILEGES ON warm_mate.* TO 'warmmate'@'localhost';

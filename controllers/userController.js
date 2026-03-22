@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const LoginLog = require('../models/LoginLog');
 
 /**
  * 用户注册
@@ -93,6 +94,23 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET || 'your_jwt_secret_key',
       { expiresIn: '7d' }
     );
+
+    // 记录登录日志
+    try {
+      const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
+      const userAgent = req.headers['user-agent'] || '';
+      const deviceInfo = extractDeviceInfo(userAgent);
+      
+      await LoginLog.create({
+        user_id: user.id,
+        ip_address: ipAddress,
+        device_info: deviceInfo,
+        user_agent: userAgent
+      });
+    } catch (logError) {
+      console.warn('登录日志记录失败:', logError);
+      // 不阻断登录流程
+    }
 
     return res.json({
       code: 200,
@@ -380,3 +398,176 @@ exports.updatePhone = async (req, res) => {
     });
   }
 };
+
+/**
+ * 获取用户登录日志（已认证）
+ */
+exports.getLoginLogs = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const page = req.query.page ? parseInt(req.query.page) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
+    if (page < 1 || limit < 1) {
+      return res.status(400).json({
+        code: 400,
+        message: '分页参数无效'
+      });
+    }
+
+    const result = await LoginLog.findByUserId(userId, page, limit);
+
+    return res.json({
+      code: 200,
+      message: '获取成功',
+      data: {
+        logs: result.data,
+        pagination: {
+          page: result.page,
+          limit: result.limit,
+          total: result.total,
+          pages: result.pages
+        }
+      }
+    });
+  } catch (error) {
+    console.error('获取登录日志错误:', error);
+    return res.status(500).json({
+      code: 500,
+      message: '获取登录日志失败: ' + error.message
+    });
+  }
+};
+
+/**
+ * 获取最近的登录记录
+ */
+exports.getLatestLoginLogs = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 5;
+
+    if (limit < 1) {
+      return res.status(400).json({
+        code: 400,
+        message: '参数无效'
+      });
+    }
+
+    const logs = await LoginLog.findLatest(userId, limit);
+
+    return res.json({
+      code: 200,
+      message: '获取成功',
+      data: logs
+    });
+  } catch (error) {
+    console.error('获取最近登录记录错误:', error);
+    return res.status(500).json({
+      code: 500,
+      message: '获取最近登录记录失败: ' + error.message
+    });
+  }
+};
+
+/**
+ * 删除指定的登录日志
+ */
+exports.deleteLoginLog = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { logId } = req.body;
+
+    if (!logId) {
+      return res.status(400).json({
+        code: 400,
+        message: '日志ID不能为空'
+      });
+    }
+
+    const success = await LoginLog.deleteById(logId, userId);
+
+    if (!success) {
+      return res.status(404).json({
+        code: 404,
+        message: '登录日志不存在或无权限删除'
+      });
+    }
+
+    return res.json({
+      code: 200,
+      message: '删除成功'
+    });
+  } catch (error) {
+    console.error('删除登录日志错误:', error);
+    return res.status(500).json({
+      code: 500,
+      message: '删除登录日志失败: ' + error.message
+    });
+  }
+};
+
+/**
+ * 清空所有登录日志
+ */
+exports.clearLoginLogs = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    await LoginLog.deleteByUserId(userId);
+
+    return res.json({
+      code: 200,
+      message: '清空成功'
+    });
+  } catch (error) {
+    console.error('清空登录日志错误:', error);
+    return res.status(500).json({
+      code: 500,
+      message: '清空登录日志失败: ' + error.message
+    });
+  }
+};
+
+/**
+ * 提取设备信息的辅助函数
+ */
+function extractDeviceInfo(userAgent) {
+  if (!userAgent) return 'Unknown Device';
+
+  // 简单的设备识别逻辑
+  let device = 'Unknown Device';
+  let browser = 'Unknown Browser';
+
+  // 识别设备类型
+  if (/Mobile|Android|iPhone|iPad|iPod/.test(userAgent)) {
+    if (/iPad/.test(userAgent)) {
+      device = 'iPad';
+    } else if (/iPhone/.test(userAgent)) {
+      device = 'iPhone';
+    } else if (/Android/.test(userAgent)) {
+      device = 'Android Phone';
+    } else {
+      device = 'Mobile Device';
+    }
+  } else if (/Windows/.test(userAgent)) {
+    device = 'Windows PC';
+  } else if (/Mac/.test(userAgent)) {
+    device = 'Mac';
+  } else if (/Linux/.test(userAgent)) {
+    device = 'Linux';
+  }
+
+  // 识别浏览器
+  if (/Chrome/.test(userAgent) && !/Edge/.test(userAgent)) {
+    browser = 'Chrome';
+  } else if (/Firefox/.test(userAgent)) {
+    browser = 'Firefox';
+  } else if (/Safari/.test(userAgent) && !/Chrome/.test(userAgent)) {
+    browser = 'Safari';
+  } else if (/Edge/.test(userAgent)) {
+    browser = 'Edge';
+  }
+
+  return `${device} - ${browser}`;
+}

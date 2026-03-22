@@ -33,4 +33,33 @@ router.get('/user/info', authenticateToken, userController.getUserInfo);
  */
 router.put('/user/info', authenticateToken, userController.updateUserInfo);
 
+/**
+ * 获取登录日志（需要认证）
+ * GET /user/login-logs?page=1&limit=10
+ * 请求头: Authorization: Bearer <token>
+ */
+router.get('/user/login-logs', authenticateToken, userController.getLoginLogs);
+
+/**
+ * 获取最近的登录记录（需要认证）
+ * GET /user/login-logs/latest?limit=5
+ * 请求头: Authorization: Bearer <token>
+ */
+router.get('/user/login-logs/latest', authenticateToken, userController.getLatestLoginLogs);
+
+/**
+ * 删除指定登录日志（需要认证）
+ * POST /user/login-logs/delete
+ * 请求头: Authorization: Bearer <token>
+ * 请求体: { logId }
+ */
+router.post('/user/login-logs/delete', authenticateToken, userController.deleteLoginLog);
+
+/**
+ * 清空所有登录日志（需要认证）
+ * POST /user/login-logs/clear
+ * 请求头: Authorization: Bearer <token>
+ */
+router.post('/user/login-logs/clear', authenticateToken, userController.clearLoginLogs);
+
 module.exports = router;

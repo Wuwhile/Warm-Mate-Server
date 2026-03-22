@@ -12,7 +12,8 @@ warm-mate-server/
 ├── config/
 │   └── database.js       # 数据库连接配置
 ├── models/
-│   └── User.js           # 用户数据模型
+│   ├── User.js           # 用户数据模型
+│   └── LoginLog.js       # 登录日志数据模型
 ├── controllers/
 │   └── userController.js # 用户业务逻辑
 ├── routes/
@@ -181,6 +182,97 @@ Content-Type: application/json
 }
 ```
 
+#### 获取登录日志（需要认证）
+```
+GET /user/login-logs?page=1&limit=10
+Authorization: Bearer <token>
+
+成功响应 (200):
+{
+  "code": 200,
+  "message": "获取成功",
+  "data": {
+    "logs": [
+      {
+        "id": 1,
+        "user_id": 1,
+        "ip_address": "192.168.1.100",
+        "device_info": "iPhone 14 - Safari",
+        "user_agent": "Mozilla/5.0...",
+        "login_time": "2026-03-22 15:30:45"
+      },
+      {
+        "id": 2,
+        "user_id": 1,
+        "ip_address": "192.168.1.101",
+        "device_info": "Android - Chrome",
+        "user_agent": "Mozilla/5.0...",
+        "login_time": "2026-03-22 10:20:30"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 25,
+      "pages": 3
+    }
+  }
+}
+```
+
+#### 获取最近登录记录（需要认证）
+```
+GET /user/login-logs/latest?limit=5
+Authorization: Bearer <token>
+
+成功响应 (200):
+{
+  "code": 200,
+  "message": "获取成功",
+  "data": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "ip_address": "192.168.1.100",
+      "device_info": "iPhone 14 - Safari",
+      "user_agent": "Mozilla/5.0...",
+      "login_time": "2026-03-22 15:30:45"
+    }
+  ]
+}
+```
+
+#### 删除登录日志（需要认证）
+```
+POST /user/login-logs/delete
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "logId": 1
+}
+
+成功响应 (200):
+{
+  "code": 200,
+  "message": "删除成功"
+}
+```
+
+#### 清空所有登录日志（需要认证）
+```
+POST /user/login-logs/clear
+Authorization: Bearer <token>
+
+成功响应 (200):
+{
+  "code": 200,
+  "message": "清空成功"
+}
+  }
+}
+```
+
 ## 🔐 安全特性
 
 - ✅ 密码使用bcryptjs进行加密存储
@@ -212,6 +304,18 @@ Content-Type: application/json
 - id = 2 → uid = 100000002
 - id = 3 → uid = 100000003
 
+### login_logs 表
+存储用户登录日志记录
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | INT | 日志ID |
+| user_id | INT | 用户ID（外键） |
+| ip_address | VARCHAR(45) | 登录IP地址 |
+| device_info | VARCHAR(255) | 设备信息（如：iPhone 14 - Safari） |
+| user_agent | TEXT | 浏览器User Agent信息 |
+| login_time | TIMESTAMP | 登录时间 |
+
 ### questionnaire_results 表
 存储问卷完成结果
 
@@ -235,7 +339,17 @@ Content-Type: application/json
 | JWT_SECRET | | JWT签名密钥（必须修改） |
 | NODE_ENV | development | 运行环境 |
 
-## � 版本更新记录
+## 🔄 版本更新记录
+
+### v1.0.3 (2026-03-22)
+- ✅ 实现登录日志功能
+  - 新增 login_logs 数据库表
+  - 登录时自动记录 IP、设备信息、User Agent
+  - 支持设备信息智能识别（iOS/Android/Windows/Mac等）
+- ✅ 新增登录日志查询接口（分页和最近N条）
+- ✅ 支持删除指定登录日志 
+- ✅ 支持清空所有登录日志
+- ✅ 前端账号管理中展示登录日志
 
 ### v1.0.2 (2026-03-22)
 - ✅ 登录和用户信息接口添加 `uid` 字段（自动计算：`uid = 100000000 + id`）
