@@ -108,9 +108,11 @@ Content-Type: application/json
   "message": "登录成功",
   "data": {
     "id": 1,
+    "uid": 100000001,
     "username": "张三",
     "phone": "13800138000",
     "email": "zhangsan@example.com",
+    "created_at": "2024-03-21T10:30:00Z",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
 }
@@ -127,6 +129,7 @@ Authorization: Bearer <token>
   "message": "获取成功",
   "data": {
     "id": 1,
+    "uid": 100000001,
     "username": "张三",
     "phone": "13800138000",
     "email": "zhangsan@example.com",
@@ -141,6 +144,22 @@ PUT /user/info
 Authorization: Bearer <token>
 Content-Type: application/json
 
+示例1 - 只更新用户名:
+{
+  "username": "李四"
+}
+
+示例2 - 只更新邮箱:
+{
+  "email": "newemail@example.com"
+}
+
+示例3 - 只更新手机号:
+{
+  "phone": "13900139000"
+}
+
+示例4 - 同时更新多个字段:
 {
   "username": "李四",
   "phone": "13900139000",
@@ -151,7 +170,14 @@ Content-Type: application/json
 {
   "code": 200,
   "message": "更新成功",
-  "data": { ... }
+  "data": {
+    "id": 1,
+    "uid": 100000001,
+    "username": "李四",
+    "phone": "13900139000",
+    "email": "lisi@example.com",
+    "created_at": "2024-03-21T10:30:00Z"
+  }
 }
 ```
 
@@ -162,6 +188,7 @@ Content-Type: application/json
 - ✅ CORS跨域资源共享
 - ✅ SQL注入防护（使用参数化查询）
 - ✅ 请求数据验证
+- ✅ 用户信息更新使用动态SQL，仅更新请求中提供的字段（防止意外覆盖其他字段）
 
 ## 📝 数据库表说明
 
@@ -177,6 +204,13 @@ Content-Type: application/json
 | email | VARCHAR(100) | 邮箱 |
 | created_at | TIMESTAMP | 创建时间 |
 | updated_at | TIMESTAMP | 修改时间 |
+
+**注意：** UID 是自动计算字段，不存储在数据库中，公式为：`uid = 100000000 + id`
+
+例如：
+- id = 1 → uid = 100000001
+- id = 2 → uid = 100000002
+- id = 3 → uid = 100000003
 
 ### questionnaire_results 表
 存储问卷完成结果
@@ -201,7 +235,21 @@ Content-Type: application/json
 | JWT_SECRET | | JWT签名密钥（必须修改） |
 | NODE_ENV | development | 运行环境 |
 
-## 📚 前端配置
+## � 版本更新记录
+
+### v1.0.2 (2026-03-22)
+- ✅ 登录和用户信息接口添加 `uid` 字段（自动计算：`uid = 100000000 + id`）
+- ✅ 用户信息更新API改用动态SQL，仅更新请求中提供的字段
+- ✅ 防止部分字段更新时导致其他字段被意外设为null
+
+### v1.0.1
+- JWT认证系统实现
+- 用户注册/登录功能
+
+### v1.0.0
+- 初始版本发布
+
+## �📚 前端配置
 
 更新前端项目中的 `common/config/env.js`：
 

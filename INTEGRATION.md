@@ -98,11 +98,12 @@ async handleLogin(username, password) {
         });
 
         if (response.code === 200) {
-            const { token, id, username: name } = response.data;
+            const { token, id, uid, username: name } = response.data;
             
             // 保存token和用户信息到本地存储
             uni.setStorageSync("Access-Token", token);
             uni.setStorageSync("userId", id);
+            uni.setStorageSync("uid", uid);  // uid = 100000000 + id
             uni.setStorageSync("username", name);
             
             uni.$u.toast('登录成功');
@@ -141,28 +142,73 @@ async getUserInfo() {
 }
 ```
 
-### 2.4 更新用户信息（已认证）
+### 2.4 更新用户信息（已认证 - 支持单字段更新）
 
 ```javascript
-// 更新用户信息
-async updateUserInfo(username, phone, email) {
+// 更新用户信息（支持更新单个字段或多个字段）
+async updateUserInfo(updateData) {
     try {
-        const response = await uni.$u.http.put("/user/info", {
-            username,
-            phone,
-            email
-        }, {
+        // updateData 可以包含: username, phone, email 中的任意组合
+        // 示例1：仅更新邮箱
+        // const updateData = { email: 'new@example.com' };
+        // 示例2：仅更新电话
+        // const updateData = { phone: '13900000000' };
+        // 示例3：同时更新多个字段
+        // const updateData = { username: 'newname', email: 'new@example.com' };
+        
+        const response = await uni.$u.http.put("/user/info", updateData, {
             custom: { auth: true }  // 需要token认证
         });
 
         if (response.code === 200) {
             uni.$u.toast('信息更新成功');
-            uni.setStorageSync("userInfo", response.data);
+            // 返回的数据包含完整的用户信息
+            const userInfo = response.data;
+            console.log('更新后的用户ID:', userInfo.uid);  // uid字段
+            uni.setStorageSync("userInfo", userInfo);
         }
     } catch (error) {
         uni.$u.toast('更新失败: ' + error.message);
     }
 }
+
+// 使用示例：仅更新邮箱
+// await updateUserInfo({ email: 'newemail@example.com' });
+```
+
+**重要说明：**
+- API 支持更新单个字段或多个字段的灵活组合
+- 只需传递想要更新的字段，不需要一次传递所有字段
+- 响应数据包含 `uid` 字段（uid = 100000000 + user_id）
+
+---
+
+## 关于用户ID和UID字段
+
+### UID说明
+
+从 **v1.0.2** 版本开始，API 响应中包含 `uid` 字段（用户唯一标识符）：
+
+**计算公式**: `uid = 100000000 + id`
+
+**示例**：
+- 如果数据库中 user.id = 5，则 uid = 100000005
+- 如果数据库中 user.id = 100，则 uid = 100000100
+- 如果数据库中 user.id = 9999，则 uid = 100009999
+
+**包含uid字段的API响应**：
+- `/login` - 登录接口返回 uid
+- `/register` - 注册接口返回 uid
+- `/user/info` - 获取用户信息接口返回 uid
+
+**前端使用**：
+```javascript
+// 从任何API响应中获取uid
+const userInfo = uni.getStorageSync("userInfo");
+console.log('当前用户UID:', userInfo.uid);  // 格式: 100000XXX
+
+// 在需要显示用户唯一标识的场景使用uid，而不是id
+// 例如：显示在个人中心、分享标识等
 ```
 
 ---
