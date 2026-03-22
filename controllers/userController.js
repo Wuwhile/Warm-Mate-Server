@@ -570,9 +570,21 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    // 获取用户信息
-    const user = await User.findById(userId);
-    if (!user) {
+    // 获取用户完整信息（包括密码）用于验证
+    const pool = require('../config/database');
+    const conn = await pool.getConnection();
+    let userWithPassword;
+    try {
+      const [rows] = await conn.execute(
+        'SELECT id, username, password FROM users WHERE id = ?',
+        [userId]
+      );
+      userWithPassword = rows.length > 0 ? rows[0] : null;
+    } finally {
+      conn.release();
+    }
+
+    if (!userWithPassword) {
       return res.status(404).json({
         code: 404,
         message: '用户不存在'
@@ -580,7 +592,7 @@ exports.changePassword = async (req, res) => {
     }
 
     // 验证旧密码
-    const isPasswordValid = await User.verifyPassword(oldPassword, user.password);
+    const isPasswordValid = await User.verifyPassword(oldPassword, userWithPassword.password);
     if (!isPasswordValid) {
       return res.status(400).json({
         code: 400,
