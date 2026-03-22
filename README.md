@@ -278,13 +278,13 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "oldPassword": "OldPass123!",
-  "newPassword": "NewPass123!"
+  "oldPassword": "oldpass123",
+  "newPassword": "newpass456"
 }
 
 密码要求：
-- 长度：8-32 个字符
-- 必须包含大写字母、小写字母、数字、特殊字符中的至少 3 种
+- 长度：6-16 个字符
+- 只能包含字母、数字或符号（!@#$%^&*()_+-=[]{}；'："\\|,.<>/?）
 - 新密码不能与旧密码相同
 
 成功响应 (200):
@@ -293,7 +293,7 @@ Content-Type: application/json
   "message": "密码修改成功，请重新登录"
 }
 
-失败響應 (400):
+失败响应 (400):
 {
   "code": 400,
   "message": "当前密码不正确" // 或其他错误信息
@@ -367,6 +367,12 @@ Content-Type: application/json
 | NODE_ENV | development | 运行环境 |
 
 ## 🔄 版本更新记录
+
+### v1.0.5 (2026-03-23)
+- ✅ 优化修改密码功能
+  - 密码长度要求改为 6-16 个字符（之前为 8-32）
+  - 密码要求简化：只需包含字母、数字或符号，无需复杂的强度组合
+  - 前端验证逻辑同步更新
 
 ### v1.0.4 (2026-03-22)
 - ✅ 实现修改密码功能

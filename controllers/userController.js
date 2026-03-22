@@ -546,25 +546,19 @@ exports.changePassword = async (req, res) => {
     }
 
     // 新密码格式验证
-    if (newPassword.length < 8 || newPassword.length > 32) {
+    if (newPassword.length < 6 || newPassword.length > 16) {
       return res.status(400).json({
         code: 400,
-        message: '新密码长度必须在 8-32 个字符之间'
+        message: '新密码长度必须在 6-16 个字符之间'
       });
     }
 
-    // 检查是否包含大小写字母、数字和特殊字符
-    const hasUpperCase = /[A-Z]/.test(newPassword);
-    const hasLowerCase = /[a-z]/.test(newPassword);
-    const hasDigit = /\d/.test(newPassword);
-    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(newPassword);
-
-    const strengthCount = [hasUpperCase, hasLowerCase, hasDigit, hasSpecialChar].filter(Boolean).length;
-    
-    if (strengthCount < 3) {
+    // 检查密码是否只包含字母、数字或符号
+    const hasValidChars = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]+$/.test(newPassword);
+    if (!hasValidChars) {
       return res.status(400).json({
         code: 400,
-        message: '新密码强度不足，需要包含大小写字母、数字和特殊字符中的至少 3 种'
+        message: '新密码只能包含字母、数字或符号'
       });
     }
 
