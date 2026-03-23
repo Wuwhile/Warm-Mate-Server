@@ -22,13 +22,16 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS questionnaire_results (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT '问卷结果ID',
   user_id INT NOT NULL COMMENT '用户ID',
-  type VARCHAR(50) NOT NULL COMMENT '问卷类型（phq9, gad7等）',
-  score INT NOT NULL COMMENT '问卷得分',
+  questionnaire_name VARCHAR(100) NOT NULL COMMENT '问卷名称（如PHQ-9）',
+  questionnaire_type VARCHAR(50) NOT NULL COMMENT '问卷类型（phq9, gad7等）',
+  score INT COMMENT '问卷总得分',
+  depression_level VARCHAR(50) COMMENT '严重程度等级（无、轻度、中度、重度等）',
+  level_description TEXT COMMENT '等级描述',
   result_data JSON COMMENT '问卷详细数据',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_user_id (user_id),
-  INDEX idx_type (type),
+  INDEX idx_type (questionnaire_type),
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='问卷结果表';
 
