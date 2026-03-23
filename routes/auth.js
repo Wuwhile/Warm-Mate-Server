@@ -132,4 +132,18 @@ router.post('/user/avatar', authenticateToken, userController.uploadAvatar);
  */
 router.post('/user/avatar/file', authenticateToken, upload.single('avatar'), userController.uploadAvatarFile);
 
+/**
+ * 发送找回密码验证码（不需要认证）
+ * POST /user/password/reset-code
+ * 请求体: { phone }
+ */
+router.post('/user/password/reset-code', userController.resetPasswordCode);
+
+/**
+ * 重置密码（不需要认证）
+ * POST /user/password/reset
+ * 请求体: { phone, code, newPassword }
+ */
+router.post('/user/password/reset', userController.resetPassword);
+
 module.exports = router;

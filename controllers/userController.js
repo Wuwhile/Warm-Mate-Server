@@ -747,6 +747,151 @@ exports.uploadAvatarFile = async (req, res) => {
 };
 
 /**
+ * 发送找回密码验证码（不需要认证）
+ */
+exports.resetPasswordCode = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    // 参数验证
+    if (!phone) {
+      return res.status(400).json({
+        code: 400,
+        message: '手机号不能为空'
+      });
+    }
+
+    // 验证手机号格式
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        code: 400,
+        message: '手机号格式不正确'
+      });
+    }
+
+    // 检查用户是否存在
+    const user = await User.findByPhone(phone);
+    if (!user) {
+      return res.status(200).json({
+        code: 404,
+        message: '该手机号未注册'
+      });
+    }
+
+    // 调用SMS服务发送验证码
+    const smsService = require('../services/smsService');
+    const result = await smsService.sendVerificationCode(phone);
+
+    if (result.success) {
+      // 缓存验证码
+      smsService.cacheVerificationCode(phone, result.verificationCode);
+      
+      // 开发环境返回验证码，生产环境应移除
+      if (process.env.NODE_ENV === 'development') {
+        return res.json({
+          code: 200,
+          message: '验证码已发送',
+          data: {
+            verificationCode: result.verificationCode // 仅开发环境
+          }
+        });
+      }
+      
+      return res.json({
+        code: 200,
+        message: '验证码已发送到您的手机'
+      });
+    } else {
+      return res.status(500).json({
+        code: 500,
+        message: result.message || '发送验证码失败'
+      });
+    }
+  } catch (error) {
+    console.error('发送找回密码验证码错误:', error);
+    return res.status(500).json({
+      code: 500,
+      message: '发送验证码失败: ' + error.message
+    });
+  }
+};
+
+/**
+ * 重置密码（不需要认证）
+ */
+exports.resetPassword = async (req, res) => {
+  try {
+    const { phone, code, newPassword } = req.body;
+
+    // 参数验证
+    if (!phone || !code || !newPassword) {
+      return res.status(400).json({
+        code: 400,
+        message: '手机号、验证码和新密码为必填项'
+      });
+    }
+
+    // 验证手机号格式
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        code: 400,
+        message: '手机号格式不正确'
+      });
+    }
+
+    // 验证新密码格式
+    if (newPassword.length < 6 || newPassword.length > 16) {
+      return res.status(400).json({
+        code: 400,
+        message: '新密码长度必须在 6-16 个字符之间'
+      });
+    }
+
+    // 验证验证码
+    const smsService = require('../services/smsService');
+    const verifyResult = smsService.verifyCode(phone, code);
+    
+    if (!verifyResult.success) {
+      return res.status(400).json({
+        code: 400,
+        message: verifyResult.message
+      });
+    }
+
+    // 查找用户
+    const user = await User.findByPhone(phone);
+    if (!user) {
+      return res.status(404).json({
+        code: 404,
+        message: '用户不存在'
+      });
+    }
+
+    // 更新用户密码
+    const success = await User.changePassword(user.id, newPassword);
+    if (!success) {
+      return res.status(500).json({
+        code: 500,
+        message: '重置密码失败'
+      });
+    }
+
+    return res.json({
+      code: 200,
+      message: '密码重置成功，请重新登录'
+    });
+  } catch (error) {
+    console.error('重置密码错误:', error);
+    return res.status(500).json({
+      code: 500,
+      message: '重置密码失败: ' + error.message
+    });
+  }
+};
+
+/**
  * 提取设备信息的辅助函数
  */
 function extractDeviceInfo(userAgent) {
