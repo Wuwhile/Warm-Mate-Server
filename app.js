@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const questionnaireRoutes = require('./routes/questionnaire');
+const appointmentRoutes = require('./routes/appointment');
 
 const app = express();
 const PORT = process.env.PORT || 7001;
@@ -17,6 +18,7 @@ app.use(cors());
 const apiPrefix = process.env.API_PREFIX || '/alibaba-ai/v1';
 app.use(apiPrefix, authRoutes);
 app.use(apiPrefix, questionnaireRoutes);
+app.use(apiPrefix, appointmentRoutes);
 
 // 健康检查端点
 app.get('/health', (req, res) => {
