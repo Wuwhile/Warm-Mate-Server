@@ -1,5 +1,6 @@
-const axios = require('axios');
 const crypto = require('crypto');
+const querystring = require('querystring');
+const axios = require('axios');
 
 /**
  * 阿里云短信服务模块
@@ -11,28 +12,29 @@ const ALIYUN_SMS_CONFIG = {
   accessKeyId: process.env.ALIYUN_ACCESS_KEY_ID || '',
   accessKeySecret: process.env.ALIYUN_ACCESS_KEY_SECRET || '',
   signName: process.env.SMS_SIGN_NAME || '速通互联验证服务',
-  templateCode: process.env.SMS_TEMPLATE_CODE || '100003'
+  templateCode: process.env.SMS_TEMPLATE_CODE || '100003',
+  endpoint: 'https://dysmsapi.aliyuncs.com/'
 };
 
 /**
- * 生成阿里云API请求签名
+ * 对字符串进行URL编码
  */
-function hmac_sha1(key, data) {
-  return crypto
-    .createHmac('sha1', key)
-    .update(data, 'utf8')
-    .digest('base64');
+function percentEncode(str) {
+  let result = encodeURIComponent(str);
+  result = result.replace(/\+/g, '%20');
+  result = result.replace(/\*/g, '%2A');
+  result = result.replace(/%7E/g, '~');
+  return result;
 }
 
 /**
- * 构建阿里云API规范化查询字符串
+ * 生成签名
  */
-function percentEncode(str) {
-  let res = encodeURIComponent(str);
-  res = res.replace(/\+/g, '%20');
-  res = res.replace(/\*/g, '%2A');
-  res = res.replace(/%7E/g, '~');
-  return res;
+function generate(stringToSign, accessKeySecret) {
+  const key = accessKeySecret + '&';
+  const hmac = crypto.createHmac('sha1', key);
+  hmac.update(stringToSign, 'utf8');
+  return hmac.digest('base64');
 }
 
 /**
@@ -55,44 +57,55 @@ async function sendVerificationCode(phoneNumber, verificationCode = null) {
     }
 
     // 构建请求参数
-    const timestamp = new Date().toISOString();
-    const nonce = Math.random().toString(36).substring(2, 15);
-
     const params = {
       'Action': 'SendSms',
       'Format': 'JSON',
       'RegionId': 'cn-hangzhou',
-      'Timestamp': timestamp,
-      'Version': '2017-05-25',
       'SignName': ALIYUN_SMS_CONFIG.signName,
       'TemplateCode': ALIYUN_SMS_CONFIG.templateCode,
       'PhoneNumbers': phoneNumber,
       'TemplateParam': JSON.stringify({ code: verificationCode }),
+      'Timestamp': new Date().toISOString(),
       'SignatureMethod': 'HMAC-SHA1',
       'SignatureVersion': '1.0',
-      'AccessKeyId': ALIYUN_SMS_CONFIG.accessKeyId,
-      'SignatureNonce': nonce
+      'SignatureNonce': Math.random().toString(36).substring(2, 15),
+      'Version': '2017-05-25',
+      'AccessKeyId': ALIYUN_SMS_CONFIG.accessKeyId
     };
 
-    // 生成签名（按阿里云规范）
-    const sortedParams = Object.keys(params)
-      .sort()
-      .map(key => {
-        return `${percentEncode(key)}=${percentEncode(params[key])}`;
-      })
-      .join('&');
+    // 对参数按字母顺序排序
+    const sortedParams = {};
+    Object.keys(params).sort().forEach(key => {
+      sortedParams[key] = params[key];
+    });
 
-    const stringToSign = `POST&${percentEncode('/')}&${percentEncode(sortedParams)}`;
-    const signature = hmac_sha1(
-      `${ALIYUN_SMS_CONFIG.accessKeySecret}&`,
-      stringToSign
-    );
+    // 构造规范化的查询字符串
+    let canonicalizedQueryString = '';
+    Object.keys(sortedParams).forEach((key, index) => {
+      if (index > 0) {
+        canonicalizedQueryString += '&';
+      }
+      canonicalizedQueryString += `${percentEncode(key)}=${percentEncode(sortedParams[key])}`;
+    });
 
-    // 构建最终请求URL
-    const url = `https://dysmsapi.aliyuncs.com/?Signature=${encodeURIComponent(signature)}&${sortedParams}`;
+    // 构造待签名的字符串
+    const stringToSign = `POST&${percentEncode('/')}&${percentEncode(canonicalizedQueryString)}`;
 
-    console.log('发送短信请求...');
-    const response = await axios.get(url, {
+    console.log('签名字符串:', stringToSign);
+
+    // 生成签名
+    const signature = generate(stringToSign, ALIYUN_SMS_CONFIG.accessKeySecret);
+
+    // 构造最终的请求URL
+    const requestUrl = `${ALIYUN_SMS_CONFIG.endpoint}?Signature=${encodeURIComponent(signature)}&${canonicalizedQueryString}`;
+
+    console.log('发送短信请求到:', ALIYUN_SMS_CONFIG.endpoint);
+    
+    // 发送POST请求
+    const response = await axios.post(ALIYUN_SMS_CONFIG.endpoint, canonicalizedQueryString + `&Signature=${encodeURIComponent(signature)}`, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
       timeout: 10000
     });
 
@@ -103,7 +116,7 @@ async function sendVerificationCode(phoneNumber, verificationCode = null) {
         success: true,
         message: '验证码发送成功',
         code: 200,
-        verificationCode: verificationCode,
+        verificationCode: process.env.NODE_ENV === 'development' ? verificationCode : undefined,
         requestId: response.data.RequestId
       };
     } else {
