@@ -61,7 +61,7 @@ class Appointment {
         urgency,
         time_preference as timePreference,
         status,
-        created_at as createdAt
+        created_at as createTime
       FROM appointments
       ORDER BY created_at DESC
     `;
@@ -92,7 +92,7 @@ class Appointment {
         urgency,
         time_preference as timePreference,
         status,
-        created_at as createdAt
+        created_at as createTime
       FROM appointments
       WHERE doctor_id = ?
       ORDER BY created_at DESC
@@ -124,7 +124,7 @@ class Appointment {
         urgency,
         time_preference as timePreference,
         status,
-        created_at as createdAt
+        created_at as createTime
       FROM appointments
       WHERE patient_phone = ?
       ORDER BY created_at DESC
@@ -157,7 +157,7 @@ class Appointment {
         urgency,
         time_preference as timePreference,
         status,
-        created_at as createdAt
+        created_at as createTime
       FROM appointments
       WHERE user_id = ?
       ORDER BY created_at DESC
@@ -191,7 +191,7 @@ class Appointment {
         time_preference as timePreference,
         status,
         notes,
-        created_at as createdAt
+        created_at as createTime
       FROM appointments
       WHERE id = ?
     `;
