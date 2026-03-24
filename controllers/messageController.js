@@ -46,11 +46,20 @@ exports.sendMessage = async (req, res) => {
       code: 200,
       message: '消息发送成功',
       data: {
-        id: aiMessage.id,
-        msgContent: aiMessage.content,
-        msgType: aiMessage.messageType,
-        fromUserId: aiMessage.fromUserId,
-        time: aiMessage.createdAt
+        userMessage: {
+          id: userMessage.id,
+          msgContent: userMessage.content,
+          msgType: userMessage.messageType,
+          fromUserId: userMessage.fromUserId,
+          time: userMessage.createdAt
+        },
+        aiMessage: {
+          id: aiMessage.id,
+          msgContent: aiMessage.content,
+          msgType: aiMessage.messageType,
+          fromUserId: aiMessage.fromUserId,
+          time: aiMessage.createdAt
+        }
       }
     });
   } catch (error) {
