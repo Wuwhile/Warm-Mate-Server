@@ -1,103 +1,95 @@
-# 🎯 快速开始指南
+# 🎯 快速开始指南（5分钟本地开发 vs 1小时ECS部署）
 
-完整的 Warm-Mate 云服务器搭建和部署方案。按照本指南可在 **2-3小时** 内完成从0到完整部署。
+选择你的场景开始：
 
-> **当前版本**: v1.0.3 (2026年3月24日)  
-> **最新功能**: SMS短信验证服务、找回密码流程、Aliyun DYPNS集成
-
----
-
-## 📦 你现在拥有的
-
-已为你生成的完整后端项目位于：
-```
-C:\Users\while\Desktop\warm-mate-server\
-```
-
-包含：
-- ✅ 完整的Node.js + Express后端框架
-- ✅ 用户认证系统（注册、登录、JWT）- 返回uid字段
-- ✅ MySQL数据库模式和初始化脚本
-- ✅ 生产级安全配置（动态SQL、参数化查询）
-- ✅ 灵活的账户管理API（支持单字段或多字段更新）
-- ✅ 完整部署文档
+> **版本**: v1.0.3 | **更新**: 2026年3月25日
 
 ---
 
-## ⚡ 三部分快速部署流程
+## 🚀 场景一：本地开发（5分钟）
 
-### 👷 **第一部分：在阿里云上购买ECS（20分钟）**
+### 快速启动
 
-1. **登录阿里云** → https://www.aliyun.com
-2. **购买ECS实例**（推荐配置）：
-   - 操作系统：**Ubuntu 20.04 LTS**
-   - 规格：**2核4GB内存** (ecs.t5.large)
-   - 存储：**40GB系统盘**
-   - 带宽：**按流量** 或 **5Mbps固定**
-
-3. **配置安全组** - 允许这些端口：
-   - 22 (SSH)
-   - 7001 (应用)
-   - 80 (HTTP)
-   - 443 (HTTPS)
-   - 3306 (MySQL)
-
-4. **记下实例信息**：
-   - 公网IP：例如 `1.2.3.4`
-   - 用户名：`ubuntu`
-   - 密钥或密码
-
----
-
-### 🔧 **第二部分：配置服务器环境（30分钟）**
-
-**在本地PowerShell中SSH连接到ECS**：
 ```bash
+# 1. 进入项目目录
+cd C:\Users\while\Desktop\warm-mate-server
+
+# 2. 安装依赖
+npm install
+
+# 3. 配置环境
+cp .env.example .env
+# 编辑 .env，配置本地数据库信息
+
+# 4. 启动数据库初始化
+mysql -u root -p < sql/init.sql
+
+# 5. 启动开发服务器（支持热重载）
+npm run dev
+```
+
+✅ 服务器运行在 `http://localhost:7001`
+
+**下一步**: 
+- 查看 [API.md](API.md) 测试所有接口
+- 修改代码 → 自动重载
+- 修改 `routes/` 或 `controllers/` 中的代码
+
+---
+
+## ☁️ 场景二：部署到阿里云ECS（1小时）
+
+### ⏱️ 3步快速部署
+
+**第一步**：购买ECS实例（20分钟）
+- 登录 https://www.aliyun.com
+- 购买 Ubuntu 20.04 LTS（2核4GB，40GB盘）
+- 配置安全组开放:  22, 7001, 80, 443, 3306 端口
+- 记下公网IP和用户名
+
+**第二步**：配置服务器（20分钟）
+```bash
+# SSH连接到服务器
 ssh ubuntu@你的ECS公网IP
-```
 
-**逐个运行这些命令**：
-
-```bash
-# 1. 更新系统
-sudo apt update && sudo apt upgrade -y
-
-# 2. 安装Node.js 18
+# 一键安装（复制粘贴下面整个脚本）
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
+sudo apt update && sudo apt install -y nodejs mysql-server
+sudo systemctl start mysql && sudo systemctl enable mysql
 
-# 3. 安装MySQL
-sudo apt install -y mysql-server
-sudo systemctl start mysql
-sudo systemctl enable mysql
-
-# 4. 验证安装
-node -v     # 应显示 v18.x.x
-npm -v      # 应显示 9.x.x
-mysql --version
-```
-
-**初始化MySQL数据库**：
-```bash
-sudo mysql -u root
-
-# 在MySQL提示符中执行
-CREATE USER 'warmmate'@'localhost' IDENTIFIED BY 'warmmate123@';
+# 初始化MySQL
+sudo mysql -u root << EOF
 CREATE USER 'warmmate'@'%' IDENTIFIED BY 'warmmate123@';
-GRANT ALL PRIVILEGES ON *.* TO 'warmmate'@'localhost' WITH GRANT OPTION;
-GRANT ALL PRIVILEGES ON *.* TO 'warmmate'@'%' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO 'warmmate'@'%';
 FLUSH PRIVILEGES;
-EXIT;
+EOF
 ```
 
----
-
-### 📤 **第三部分：上传和启动应用（20分钟）**
-
-**在本地电脑PowerShell中上传代码**：
+**第三步**：上传并启动应用（20分钟）
 ```bash
-# 上传你生成的项目到ECS
+# 在本地电脑执行
 scp -r C:\Users\while\Desktop\warm-mate-server ubuntu@你的ECS公网IP:/home/ubuntu/
+
+# SSH到服务器
+ssh ubuntu@你的ECS公网IP
+
+# 启动应用
+cd warm-mate-server
+npm install
+cat sql/init.sql | mysql -u warmmate -p'warmmate123@' -h localhost
+
+# 启动应用（后台运行推荐使用PM2）
+npm install -g pm2
+pm2 start app.js --name "warm-mate"
+pm2 startup
+pm2 save
+```
+
+✅ 应用运行在 `http://你的ECS公网IP:7001`
+
+### 📖 详细步骤
+
+完整的部署文档在 [DEPLOYMENT.md](DEPLOYMENT.md)
 ```
 
 **回到SSH连接，启动应用**：
