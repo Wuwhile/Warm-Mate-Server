@@ -57,16 +57,7 @@ exports.sendMessage = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
 
     // 立刻返回用户消息
-    res.write(`data: ${JSON.stringify({\
-      type: 'userMessage',
-      data: {
-        id: userMessage.id,
-        msgContent: userMessage.content,
-        msgType: userMessage.messageType,
-        fromUserId: userMessage.fromUserId,
-        time: userMessage.createdAt
-      }
-    })}\n\n`);
+    res.write(`data: ${JSON.stringify({type:'userMessage',data:{id:userMessage.id,msgContent:userMessage.content,msgType:userMessage.messageType,fromUserId:userMessage.fromUserId,time:userMessage.createdAt}})}\n\n`);
 
     // 获取此对话的完整消息历史
     const conversationHistory = await Message.findByConversationId(conversationId, 1, 100);
@@ -110,28 +101,13 @@ exports.sendMessage = async (req, res) => {
         if (chunk.type === 'content') {
           // 内容块：实时流式返回给前端
           fullAIReply += chunk.content;
-          res.write(`data: ${JSON.stringify({\
-            type: 'aiChunk',
-            data: {
-              content: chunk.content
-            }
-          })}\n\n`);
+          res.write(`data: ${JSON.stringify({type:'aiChunk',data:{content:chunk.content}})}\n\n`);
         } else if (chunk.type === 'done') {
           // 流式完成
-          res.write(`data: ${JSON.stringify({\
-            type: 'aiDone',
-            data: {\
-              totalTokens: chunk.usage ? chunk.usage.total_tokens : null
-            }
-          })}\n\n`);
+          res.write(`data: ${JSON.stringify({type:'aiDone',data:{totalTokens:chunk.usage?chunk.usage.total_tokens:null}})}\n\n`);
         } else if (chunk.type === 'error') {
           // 错误处理
-          res.write(`data: ${JSON.stringify({\
-            type: 'aiError',
-            data: {\
-              message: chunk.content
-            }
-          })}\n\n`);
+          res.write(`data: ${JSON.stringify({type:'aiError',data:{message:chunk.content}})}\n\n`);
         }
       }
 
@@ -149,18 +125,7 @@ exports.sendMessage = async (req, res) => {
       await Conversation.updateTitle(conversationId, conversation.title);
 
       // 最后返回完整数据
-      res.write(`data: ${JSON.stringify({\
-        type: 'complete',
-        data: {\
-          aiMessage: {\
-            id: aiMessage.id,
-            msgContent: aiMessage.content,
-            msgType: aiMessage.messageType,
-            fromUserId: aiMessage.fromUserId,
-            time: aiMessage.createdAt
-          }\
-        }
-      })}\n\n`);
+      res.write(`data: ${JSON.stringify({type:'complete',data:{aiMessage:{id:aiMessage.id,msgContent:aiMessage.content,msgType:aiMessage.messageType,fromUserId:aiMessage.fromUserId,time:aiMessage.createdAt}}})}\n\n`);
 
       res.end();
     } catch (aiError) {
@@ -187,12 +152,7 @@ exports.sendMessage = async (req, res) => {
       });
     } else {
       // 已发送响应则通过SSE返回错误
-      res.write(`data: ${JSON.stringify({
-        type: 'error',
-        data: {
-          message: '系统错误: ' + error.message
-        }
-      })}\n\n`);
+      res.write(`data: ${JSON.stringify({type:'error',data:{message:'系统错误: '+error.message}})}\n\n`);
       res.end();
     }
   }
