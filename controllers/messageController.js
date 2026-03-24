@@ -132,12 +132,7 @@ exports.sendMessage = async (req, res) => {
       console.error('AI 流式调用错误:', aiError);
       
       // 返回错误
-      res.write(`data: ${JSON.stringify({\
-        type: 'error',
-        data: {\
-          message: 'AI 服务出错: ' + aiError.message
-        }
-      })}\n\n`);
+      res.write(`data: ${JSON.stringify({type:'error',data:{message:'AI 服务出错: '+aiError.message}})}\n\n`);
       
       res.end();
     }
