@@ -6,17 +6,18 @@ class Message {
    */
   static async create(messageData) {
     try {
-      const { userId, content, messageType = 'text', fromUserId = 0 } = messageData;
+      const { userId, conversationId, content, messageType = 'text', fromUserId = 0 } = messageData;
       const sql = `
-        INSERT INTO messages (user_id, from_user_id, content, message_type, created_at)
-        VALUES (?, ?, ?, ?, NOW())
+        INSERT INTO messages (user_id, conversation_id, from_user_id, content, message_type, created_at)
+        VALUES (?, ?, ?, ?, ?, NOW())
       `;
       
-      const [result] = await db.execute(sql, [userId, fromUserId, content, messageType]);
+      const [result] = await db.execute(sql, [userId, conversationId, fromUserId, content, messageType]);
       
       return {
         id: result.insertId,
         userId,
+        conversationId,
         content,
         messageType,
         fromUserId,
@@ -132,6 +133,46 @@ class Message {
       return result.affectedRows;
     } catch (error) {
       console.error('清空消息错误:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 根据对话ID获取消息列表（分页）
+   */
+  static async findByConversationId(conversationId, current = 1, size = 20) {
+    try {
+      const offset = (current - 1) * size;
+      
+      // 获取总数
+      const [countResult] = await db.execute(
+        'SELECT COUNT(*) as total FROM messages WHERE conversation_id = ?',
+        [conversationId]
+      );
+      const total = countResult[0].total;
+
+      // 获取分页数据
+      const sql = `
+        SELECT id, user_id, conversation_id, from_user_id as fromUserId, content as msgContent, message_type as msgType, read_status, created_at as time
+        FROM messages
+        WHERE conversation_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?, ?
+      `;
+      
+      const [records] = await db.execute(sql, [conversationId, offset, size]);
+      
+      const pages = Math.ceil(total / size);
+      
+      return {
+        records,
+        total,
+        size,
+        current,
+        pages
+      };
+    } catch (error) {
+      console.error('获取对话消息列表错误:', error);
       throw error;
     }
   }

@@ -1,4 +1,5 @@
 const Message = require('../models/Message');
+const Conversation = require('../models/Conversation');
 const aiService = require('../services/aiService');
 
 /**
@@ -7,7 +8,7 @@ const aiService = require('../services/aiService');
 exports.sendMessage = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { msgContent, msgType = 'text' } = req.body;
+    const { msgContent, msgType = 'text', conversationId } = req.body;
 
     // 参数验证
     if (!msgContent) {
@@ -17,9 +18,26 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
+    if (!conversationId) {
+      return res.status(400).json({
+        code: 400,
+        message: '缺少对话ID'
+      });
+    }
+
+    // 验证对话所有者
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation || conversation.user_id !== userId) {
+      return res.status(403).json({
+        code: 403,
+        message: '无权访问此对话'
+      });
+    }
+
     // 保存用户消息
     const userMessage = await Message.create({
       userId,
+      conversationId,
       content: msgContent,
       messageType: msgType,
       fromUserId: userId  // 用户发送，fromUserId为用户ID
@@ -32,8 +50,8 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // 获取完整的对话历史（最近 20 条消息用于上下文）
-    const conversationHistory = await Message.findByUserId(userId, 1, 100);
+    // 获取此对话的完整消息历史
+    const conversationHistory = await Message.findByConversationId(conversationId, 1, 100);
     const recentMessages = conversationHistory.records || [];
     
     // 构建 ChatGPT 格式的消息历史（用于千问 API）
@@ -71,10 +89,14 @@ exports.sendMessage = async (req, res) => {
     // 保存 AI 回复消息
     const aiMessage = await Message.create({
       userId,
+      conversationId,
       content: aiReply,
       messageType: msgType,
       fromUserId: 0  // AI 回复，fromUserId为0
     });
+
+    // 更新对话的最后更新时间
+    await Conversation.updateTitle(conversationId, conversation.title);
 
     return res.json({
       code: 200,
@@ -107,11 +129,12 @@ exports.sendMessage = async (req, res) => {
 
 /**
  * 获取消息列表（分页）
- * 只返回当前认证用户的消息
+ * 支持按对话ID查询或按用户ID查询
  */
 exports.getMessageList = async (req, res) => {
   try {
-    const userId = req.user.id;  // 从认证信息获取用户ID，确保安全性
+    const userId = req.user.id;
+    const conversationId = req.query.conversationId;
     const current = parseInt(req.query.current) || 1;
     const size = parseInt(req.query.size) || 20;
 
@@ -122,8 +145,22 @@ exports.getMessageList = async (req, res) => {
       });
     }
 
-    // 获取该用户的消息列表
-    const result = await Message.findByUserId(userId, current, size);
+    let result;
+
+    if (conversationId) {
+      // 查询特定对话的消息
+      const conversation = await Conversation.findById(conversationId);
+      if (!conversation || conversation.user_id !== userId) {
+        return res.status(403).json({
+          code: 403,
+          message: '无权访问此对话'
+        });
+      }
+      result = await Message.findByConversationId(conversationId, current, size);
+    } else {
+      // 查询用户所有消息（不分对话）
+      result = await Message.findByUserId(userId, current, size);
+    }
 
     return res.json({
       code: 200,
