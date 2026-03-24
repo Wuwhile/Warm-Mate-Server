@@ -20,7 +20,8 @@ exports.sendMessage = async (req, res) => {
     const userMessage = await Message.create({
       userId,
       content: msgContent,
-      messageType: msgType
+      messageType: msgType,
+      fromUserId: userId  // 用户发送，fromUserId为用户ID
     });
 
     if (!userMessage) {
@@ -33,14 +34,23 @@ exports.sendMessage = async (req, res) => {
     // 获取 AI 回复（模拟或调用真实 AI 服务）
     const aiReply = await getAIReply(msgContent);
 
+    // 保存 AI 回复消息
+    const aiMessage = await Message.create({
+      userId,
+      content: aiReply,
+      messageType: msgType,
+      fromUserId: 0  // AI 回复，fromUserId为0
+    });
+
     return res.json({
       code: 200,
       message: '消息发送成功',
       data: {
-        id: userMessage.id,
-        msgContent: aiReply,
-        msgType: msgType,
-        time: new Date()
+        id: aiMessage.id,
+        msgContent: aiMessage.content,
+        msgType: aiMessage.messageType,
+        fromUserId: aiMessage.fromUserId,
+        time: aiMessage.createdAt
       }
     });
   } catch (error) {
