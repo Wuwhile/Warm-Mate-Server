@@ -15,7 +15,7 @@ class AIService {
   }
 
   /**
-   * 调用千问 Chat API
+   * 调用千问 Chat API（非流式）
    * @param {Array} messages - 对话历史，格式：[{role: 'user|assistant|system', content: '文本'}]
    * @param {Object} options - 可选参数
    * @returns {Promise<string>} AI 回复
@@ -67,6 +67,105 @@ class AIService {
       }
       // 返回备选回复
       return this.getFallbackReply();
+    }
+  }
+
+  /**
+   * 调用千问 Chat API（流式）- 返回异步迭代器
+   * @param {Array} messages - 对话历史
+   * @param {Object} options - 可选参数
+   * @returns {AsyncGenerator} 流式数据生成器
+   */
+  async *chatStream(messages, options = {}) {
+    try {
+      // 验证 API Key
+      if (!this.apiKey) {
+        console.error('DASHSCOPE_API_KEY 未配置');
+        yield { type: 'error', content: '服务未配置' };
+        return;
+      }
+
+      // 构建请求体 - 启用流式
+      const requestBody = {
+        model: this.model,
+        messages: messages,
+        temperature: options.temperature || 0.7,
+        max_tokens: options.max_tokens || 1024,
+        top_p: options.top_p || 0.8,
+        stream: true,  // 关键：启用流式
+        stream_options: {
+          include_usage: true  // 在最后一个chunk包含Token使用信息
+        }
+      };
+
+      // 发送流式请求
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        requestBody,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 60000,
+          responseType: 'stream'  // 设置为流式响应
+        }
+      );
+
+      // 实时处理流数据
+      for await (const chunk of response.data) {
+        const lines = chunk.toString().split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6);  // 移除 'data: ' 前缀
+            
+            try {
+              const data = JSON.parse(jsonStr);
+              
+              // 提取内容块
+              if (data.choices && data.choices[0]) {
+                const delta = data.choices[0].delta;
+                
+                if (delta && delta.content) {
+                  // 有新内容块
+                  yield {
+                    type: 'content',
+                    content: delta.content
+                  };
+                }
+                
+                // 判断是否流式结束
+                if (data.choices[0].finish_reason === 'stop') {
+                  // 包含使用情况
+                  if (data.usage) {
+                    yield {
+                      type: 'done',
+                      usage: data.usage
+                    };
+                  } else {
+                    yield {
+                      type: 'done',
+                      usage: null
+                    };
+                  }
+                }
+              }
+            } catch (e) {
+              // JSON 解析错误，跳过此行
+              if (jsonStr && jsonStr !== '[DONE]') {
+                console.warn('解析流数据失败:', jsonStr);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('流式调用千问 API 失败:', error.message);
+      yield {
+        type: 'error',
+        content: error.message
+      };
     }
   }
 
