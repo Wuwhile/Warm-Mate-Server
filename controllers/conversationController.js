@@ -47,27 +47,31 @@ exports.getConversationList = async (req, res) => {
     // 获取对话列表
     const result = await Conversation.findByUserId(userId, current, size);
 
-    // 为每个对话添加最后一条消息的预览
-    const conversations = await Promise.all(result.records.map(async (conv) => {
+    // 为每个对话添加最后一条消息的预览，并过滤掉没有消息的对话
+    const conversations = [];
+    for (const conv of result.records) {
       const messages = await Message.findByConversationId(conv.id, 1, 1);
-      const lastMessage = messages.records[0];
       
-      return {
-        ...conv,
-        lastMessage: lastMessage ? lastMessage.msgContent : '',
-        messageCount: messages.total
-      };
-    }));
+      // 只添加有消息的对话到列表
+      if (messages.total > 0) {
+        const lastMessage = messages.records[0];
+        conversations.push({
+          ...conv,
+          lastMessage: lastMessage ? lastMessage.msgContent : '',
+          messageCount: messages.total
+        });
+      }
+    }
 
     return res.json({
       code: 200,
       message: '获取对话列表成功',
       data: {
         records: conversations,
-        total: result.total,
-        size: result.size,
-        current: result.current,
-        pages: result.pages
+        total: conversations.length,
+        size: size,
+        current: current,
+        pages: Math.ceil(conversations.length / size)
       }
     });
   } catch (error) {
