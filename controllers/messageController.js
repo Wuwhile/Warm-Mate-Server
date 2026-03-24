@@ -107,10 +107,11 @@ exports.sendMessage = async (req, res) => {
 
 /**
  * 获取消息列表（分页）
+ * 只返回当前认证用户的消息
  */
 exports.getMessageList = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id;  // 从认证信息获取用户ID，确保安全性
     const current = parseInt(req.query.current) || 1;
     const size = parseInt(req.query.size) || 20;
 
@@ -121,7 +122,7 @@ exports.getMessageList = async (req, res) => {
       });
     }
 
-    // 获取消息列表
+    // 获取该用户的消息列表
     const result = await Message.findByUserId(userId, current, size);
 
     return res.json({

@@ -30,24 +30,25 @@ class Message {
 
   /**
    * 根据用户 ID 获取消息列表（分页）
+   * 只查询属于此用户的消息（包括用户发送和AI回复）
    */
   static async findByUserId(userId, current = 1, size = 20) {
     try {
       const offset = (current - 1) * size;
       
-      // 获取总数
+      // 获取此用户的消息总数
       const [countResult] = await db.execute(
         'SELECT COUNT(*) as total FROM messages WHERE user_id = ?',
         [userId]
       );
       const total = countResult[0].total;
 
-      // 获取分页数据
+      // 获取此用户的分页消息数据（按创建时间降序）
       const sql = `
         SELECT id, user_id, from_user_id as fromUserId, content as msgContent, message_type as msgType, read_status, created_at as time
         FROM messages
         WHERE user_id = ?
-        ORDER BY created_at ASC
+        ORDER BY created_at DESC
         LIMIT ?, ?
       `;
       
