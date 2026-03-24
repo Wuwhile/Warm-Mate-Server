@@ -300,6 +300,68 @@ Content-Type: application/json
 }
 ```
 
+#### 发送找回密码验证码（不需要认证）
+```
+POST /user/password/reset-code
+Content-Type: application/json
+
+{
+  "phone": "17661577859"
+}
+
+成功响应 (200):
+{
+  "code": 200,
+  "message": "验证码已发送到您的手机",
+  "data": {
+    "verificationCode": "123456"  // 仅开发环境返回
+  }
+}
+
+失败响应：
+- 404：该手机号未注册
+- 400：手机号格式不正确
+- 500：短信发送失败（可能是频率限制：check frequency failed）
+
+说明：
+- 每个手机号的验证码有效期为 5 分钟
+- 阿里云 SMS 服务有频率限制，单个手机号过于频繁请求会返回 "check frequency failed" 错误
+- 建议在 UI 上实现 60 秒倒计时防止用户频繁点击
+```
+
+#### 重置密码（不需要认证）
+```
+POST /user/password/reset
+Content-Type: application/json
+
+{
+  "phone": "17661577859",
+  "code": "123456",
+  "newPassword": "newpass456"
+}
+
+密码要求：
+- 长度：6-16 个字符
+- 新密码与旧密码不能相同
+
+成功响应 (200):
+{
+  "code": 200,
+  "message": "密码重置成功，请重新登录"
+}
+
+失败响应：
+- 400：验证码错误或已过期
+- 404：用户不存在
+- 500：重置密码失败
+
+说明：
+- 验证码必须与发送验证码接口返回的验证码一致
+- 验证码有效期为 5 分钟
+- 验证码验证失败最多允许 5 次尝试
+```
+```
+
 ## 🔐 安全特性
 
 - ✅ 密码使用bcryptjs进行加密存储
