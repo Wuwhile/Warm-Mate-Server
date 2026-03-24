@@ -62,11 +62,23 @@ exports.saveAppointment = async (req, res) => {
 };
 
 /**
- * 获取预约列表
+ * 获取预约列表（当前用户）
  */
 exports.getAppointmentList = async (req, res) => {
   try {
-    const appointments = await Appointment.findAll();
+    // 获取当前登录用户信息
+    const userId = req.user.id;
+    const userPhone = req.user.phone;
+
+    if (!userPhone) {
+      return res.status(400).json({
+        code: 400,
+        message: '用户手机号信息缺失'
+      });
+    }
+
+    // 只返回该用户的预约（根据患者电话号匹配）
+    const appointments = await Appointment.findByPatientPhone(userPhone);
 
     return res.status(200).json({
       code: 200,
@@ -110,6 +122,16 @@ exports.getAppointmentByDoctorId = async (req, res) => {
 exports.getAppointmentByPatientPhone = async (req, res) => {
   try {
     const patientPhone = req.params.patientPhone;
+    const currentUserPhone = req.user.phone;
+
+    // 权限验证：只能查看自己的预约
+    if (patientPhone !== currentUserPhone) {
+      return res.status(403).json({
+        code: 403,
+        message: '无权查看他人预约信息'
+      });
+    }
+
     const appointments = await Appointment.findByPatientPhone(patientPhone);
 
     return res.status(200).json({
@@ -132,12 +154,26 @@ exports.getAppointmentByPatientPhone = async (req, res) => {
 exports.getAppointmentDetail = async (req, res) => {
   try {
     const appointmentId = req.params.id;
+    const currentUserPhone = req.user.phone;
+    const currentUserDoctorId = req.user.doctorId; // 如果用户是医生
+
     const appointment = await Appointment.findById(appointmentId);
 
     if (!appointment) {
       return res.status(404).json({
         code: 404,
         message: '预约不存在'
+      });
+    }
+
+    // 权限验证：只能查看自己的预约（患者或医生）
+    const isPatient = appointment.patientPhone === currentUserPhone;
+    const isDoctor = appointment.doctorId === currentUserDoctorId;
+    
+    if (!isPatient && !isDoctor) {
+      return res.status(403).json({
+        code: 403,
+        message: '无权查看该预约信息'
       });
     }
 
@@ -161,6 +197,8 @@ exports.getAppointmentDetail = async (req, res) => {
 exports.updateAppointment = async (req, res) => {
   try {
     const { id, status, notes, timePreference } = req.body;
+    const currentUserPhone = req.user.phone;
+    const currentUserDoctorId = req.user.doctorId; // 如果用户是医生
 
     if (!id) {
       return res.status(400).json({
@@ -174,6 +212,17 @@ exports.updateAppointment = async (req, res) => {
       return res.status(404).json({
         code: 404,
         message: '预约不存在'
+      });
+    }
+
+    // 权限验证：只有医生或患者才能更新
+    const isPatient = appointment.patientPhone === currentUserPhone;
+    const isDoctor = appointment.doctorId === currentUserDoctorId;
+    
+    if (!isPatient && !isDoctor) {
+      return res.status(403).json({
+        code: 403,
+        message: '无权修改该预约'
       });
     }
 
@@ -209,12 +258,26 @@ exports.updateAppointment = async (req, res) => {
 exports.deleteAppointment = async (req, res) => {
   try {
     const appointmentId = req.params.id;
+    const currentUserPhone = req.user.phone;
+    const currentUserDoctorId = req.user.doctorId;
+
     const appointment = await Appointment.findById(appointmentId);
 
     if (!appointment) {
       return res.status(404).json({
         code: 404,
         message: '预约不存在'
+      });
+    }
+
+    // 权限验证：只有医生或患者才能删除
+    const isPatient = appointment.patientPhone === currentUserPhone;
+    const isDoctor = appointment.doctorId === currentUserDoctorId;
+    
+    if (!isPatient && !isDoctor) {
+      return res.status(403).json({
+        code: 403,
+        message: '无权删除该预约'
       });
     }
 
