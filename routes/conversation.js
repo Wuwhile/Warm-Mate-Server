@@ -37,4 +37,10 @@ router.delete('/:id', conversationController.deleteConversation);
  */
 router.put('/:id', conversationController.updateConversation);
 
+/**
+ * POST /conversation/:id/generate-title
+ * 根据对话内容生成标题
+ */
+router.post('/:id/generate-title', conversationController.generateTitle);
+
 module.exports = router;

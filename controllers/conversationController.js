@@ -195,3 +195,92 @@ exports.updateConversation = async (req, res) => {
     });
   }
 };
+
+/**
+ * 根据对话内容生成标题
+ */
+exports.generateTitle = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    const aiService = require('../services/aiService');
+
+    // 验证对话所有者
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation || conversation.user_id !== userId) {
+      return res.status(403).json({
+        code: 403,
+        message: '无权访问此对话'
+      });
+    }
+
+    // 获取对话的前几条消息
+    const messages = await Message.findByConversationId(conversationId, 1, 50);
+    
+    if (!messages.records || messages.records.length === 0) {
+      return res.json({
+        code: 200,
+        message: '生成标题成功',
+        data: { title: '新对话' }
+      });
+    }
+
+    // 收集用户消息和前两条消息用于生成标题
+    const relevantMessages = messages.records.slice(0, 4); // 前4条消息
+    let conversationPreview = '';
+    for (const msg of relevantMessages) {
+      conversationPreview += (msg.fromUserId === 0 ? 'AI' : '用户') + ': ' + msg.msgContent + '\n';
+    }
+
+    // 调用 AI 生成标题
+    let generatedTitle = '';
+    try {
+      for await (const chunk of aiService.chatStream([
+        {
+          role: 'system',
+          content: '你是一个标题生成助手。根据用户提供的对话内容，生成一个简洁、准确的对话标题，长度不超过20个字符。只返回标题，不要有其他内容。'
+        },
+        {
+          role: 'user',
+          content: '请根据以下对话内容生成一个标题：\n' + conversationPreview
+        }
+      ], {
+        temperature: 0.5,
+        max_tokens: 50
+      })) {
+        if (chunk.type === 'content') {
+          generatedTitle += chunk.content;
+        }
+      }
+
+      generatedTitle = generatedTitle.trim().substring(0, 20); // 确保长度不超过20字符
+      if (!generatedTitle) {
+        generatedTitle = '新对话';
+      }
+
+      // 更新对话标题
+      await Conversation.updateTitle(conversationId, generatedTitle);
+
+      return res.json({
+        code: 200,
+        message: '生成标题成功',
+        data: { title: generatedTitle }
+      });
+    } catch (aiError) {
+      console.error('AI 生成标题失败:', aiError);
+      // 如果 AI 失败，返回默认标题
+      return res.json({
+        code: 200,
+        message: '使用默认标题',
+        data: { title: '新对话' }
+      });
+    }
+
+  } catch (error) {
+    console.error('生成标题错误:', error);
+    return res.status(500).json({
+      code: 500,
+      message: '生成标题失败: ' + error.message
+    });
+  }
+};
