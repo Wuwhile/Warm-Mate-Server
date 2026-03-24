@@ -6,6 +6,7 @@ class Appointment {
    */
   static async create(data) {
     const {
+      userId,
       doctorId,
       doctorName,
       patientName,
@@ -19,12 +20,13 @@ class Appointment {
 
     const sql = `
       INSERT INTO appointments 
-      (doctor_id, doctor_name, patient_name, patient_age, patient_gender, patient_phone, consultation_content, urgency, time_preference)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (user_id, doctor_id, doctor_name, patient_name, patient_age, patient_gender, patient_phone, consultation_content, urgency, time_preference)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     try {
       const [result] = await pool.execute(sql, [
+        userId,
         doctorId,
         doctorName,
         patientName,
@@ -138,12 +140,46 @@ class Appointment {
   }
 
   /**
+   * 根据用户 ID 获取预约列表
+   */
+  static async findByUserId(userId) {
+    const sql = `
+      SELECT 
+        id,
+        user_id as userId,
+        doctor_id as doctorId,
+        doctor_name as doctorName,
+        patient_name as patientName,
+        patient_age as patientAge,
+        patient_gender as patientGender,
+        patient_phone as patientPhone,
+        consultation_content as consultationContent,
+        urgency,
+        time_preference as timePreference,
+        status,
+        created_at as createdAt
+      FROM appointments
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `;
+
+    try {
+      const [rows] = await pool.execute(sql, [userId]);
+      return rows;
+    } catch (error) {
+      console.error('查询用户预约列表失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 根据 ID 获取预约详情
    */
   static async findById(id) {
     const sql = `
       SELECT 
         id,
+        user_id as userId,
         doctor_id as doctorId,
         doctor_name as doctorName,
         patient_name as patientName,

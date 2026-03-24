@@ -7,7 +7,7 @@ const { authenticateToken } = require('../middleware/auth');
  * 保存预约申请
  * POST /alibaba-ai/v1/appointment/saveAppointment
  */
-router.post('/appointment/saveAppointment', appointmentController.saveAppointment);
+router.post('/appointment/saveAppointment', authenticateToken, appointmentController.saveAppointment);
 
 /**
  * 获取预约列表
