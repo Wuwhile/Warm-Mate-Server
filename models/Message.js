@@ -6,20 +6,19 @@ class Message {
    */
   static async create(messageData) {
     try {
-      const { userId, msgContent, msgType = 'text', fromUserId } = messageData;
+      const { userId, content, messageType = 'text' } = messageData;
       const sql = `
-        INSERT INTO messages (user_id, msg_content, msg_type, from_user_id, created_at)
-        VALUES (?, ?, ?, ?, NOW())
+        INSERT INTO messages (user_id, content, message_type, created_at)
+        VALUES (?, ?, ?, NOW())
       `;
       
-      const [result] = await db.execute(sql, [userId, msgContent, msgType, fromUserId]);
+      const [result] = await db.execute(sql, [userId, content, messageType]);
       
       return {
         id: result.insertId,
         userId,
-        msgContent,
-        msgType,
-        fromUserId,
+        content,
+        messageType,
         createdAt: new Date()
       };
     } catch (error) {
@@ -44,7 +43,7 @@ class Message {
 
       // 获取分页数据
       const sql = `
-        SELECT id, user_id, msg_content, msg_type, from_user_id, created_at as time
+        SELECT id, user_id, content, message_type, read_status, created_at as time
         FROM messages
         WHERE user_id = ?
         ORDER BY created_at ASC
@@ -74,7 +73,7 @@ class Message {
   static async findById(messageId) {
     try {
       const sql = `
-        SELECT id, user_id, msg_content, msg_type, from_user_id, created_at as time
+        SELECT id, user_id, content, message_type, read_status, created_at as time
         FROM messages
         WHERE id = ?
         LIMIT 1

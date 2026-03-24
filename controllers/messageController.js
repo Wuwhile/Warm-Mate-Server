@@ -19,9 +19,8 @@ exports.sendMessage = async (req, res) => {
     // 保存用户消息
     const userMessage = await Message.create({
       userId,
-      msgContent,
-      msgType,
-      fromUserId: userId  // 用户自己发送
+      content: msgContent,
+      messageType: msgType
     });
 
     if (!userMessage) {
@@ -34,23 +33,14 @@ exports.sendMessage = async (req, res) => {
     // 获取 AI 回复（模拟或调用真实 AI 服务）
     const aiReply = await getAIReply(msgContent);
 
-    // 保存 AI 回复消息
-    const aiMessage = await Message.create({
-      userId,
-      msgContent: aiReply,
-      msgType: 'text',
-      fromUserId: 0  // AI 用户 ID 为 0
-    });
-
     return res.json({
       code: 200,
       message: '消息发送成功',
       data: {
-        id: aiMessage.id,
-        msgContent: aiMessage.msgContent,
-        msgType: aiMessage.msgType,
-        fromUserId: aiMessage.fromUserId,
-        time: aiMessage.createdAt
+        id: userMessage.id,
+        msgContent: aiReply,
+        msgType: msgType,
+        time: new Date()
       }
     });
   } catch (error) {
