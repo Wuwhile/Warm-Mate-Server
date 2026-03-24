@@ -3,7 +3,7 @@ const Conversation = require('../models/Conversation');
 const aiService = require('../services/aiService');
 
 /**
- * 发送消息（流式版本）
+ * 发送消息（非流式版本 - 返回完整内容）
  */
 exports.sendMessage = async (req, res) => {
   try {
@@ -50,15 +50,6 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // 设置SSE响应头
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-
-    // 立刻返回用户消息
-    res.write(`data: ${JSON.stringify({type:'userMessage',data:{id:userMessage.id,msgContent:userMessage.content,msgType:userMessage.messageType,fromUserId:userMessage.fromUserId,time:userMessage.createdAt}})}\n\n`);
-
     // 获取此对话的完整消息历史
     const conversationHistory = await Message.findByConversationId(conversationId, 1, 100);
     const recentMessages = conversationHistory.records || [];
@@ -89,67 +80,74 @@ exports.sendMessage = async (req, res) => {
       content: msgContent
     });
 
-    // 流式调用千问 API
+    // 调用千问 API 获取完整 AI 回复
     let fullAIReply = '';
-    let aiMessageId = null;
-
     try {
       for await (const chunk of aiService.chatStream(messages, {
         temperature: 0.7,
         max_tokens: 500
       })) {
         if (chunk.type === 'content') {
-          // 内容块：实时流式返回给前端
           fullAIReply += chunk.content;
-          res.write(`data: ${JSON.stringify({type:'aiChunk',data:{content:chunk.content}})}\n\n`);
-        } else if (chunk.type === 'done') {
-          // 流式完成
-          res.write(`data: ${JSON.stringify({type:'aiDone',data:{totalTokens:chunk.usage?chunk.usage.total_tokens:null}})}\n\n`);
         } else if (chunk.type === 'error') {
-          // 错误处理
-          res.write(`data: ${JSON.stringify({type:'aiError',data:{message:chunk.content}})}\n\n`);
+          throw new Error(chunk.content);
         }
       }
 
-      // 流式完成后，保存完整的AI消息
+      if (!fullAIReply) {
+        fullAIReply = '（无法生成回复）';
+      }
+
+      // 保存完整的AI消息
       const aiMessage = await Message.create({
         userId,
         conversationId,
-        content: fullAIReply || '（无法生成回复）',
+        content: fullAIReply,
         messageType: msgType,
         fromUserId: 0  // AI 回复，fromUserId为0
       });
-      aiMessageId = aiMessage.id;
 
       // 更新对话的最后更新时间
       await Conversation.updateTitle(conversationId, conversation.title);
 
-      // 最后返回完整数据
-      res.write(`data: ${JSON.stringify({type:'complete',data:{aiMessage:{id:aiMessage.id,msgContent:aiMessage.content,msgType:aiMessage.messageType,fromUserId:aiMessage.fromUserId,time:aiMessage.createdAt}}})}\n\n`);
+      // 返回成功响应
+      return res.json({
+        code: 200,
+        message: '消息发送成功',
+        data: {
+          userMessage: {
+            id: userMessage.id,
+            msgContent: userMessage.content,
+            msgType: userMessage.messageType,
+            fromUserId: userMessage.fromUserId,
+            time: userMessage.createdAt
+          },
+          aiMessage: {
+            id: aiMessage.id,
+            msgContent: aiMessage.content,
+            msgType: aiMessage.messageType,
+            fromUserId: aiMessage.fromUserId,
+            time: aiMessage.createdAt
+          }
+        }
+      });
 
-      res.end();
     } catch (aiError) {
-      console.error('AI 流式调用错误:', aiError);
+      console.error('AI 调用错误:', aiError);
       
-      // 返回错误
-      res.write(`data: ${JSON.stringify({type:'error',data:{message:'AI 服务出错: '+aiError.message}})}\n\n`);
-      
-      res.end();
+      return res.status(500).json({
+        code: 500,
+        message: 'AI 服务错误: ' + aiError.message
+      });
     }
+
   } catch (error) {
     console.error('发送消息错误:', error);
     
-    // 响应未开始则返回JSON错误
-    if (!res.headersSent) {
-      return res.status(500).json({
-        code: 500,
-        message: '发送消息失败: ' + error.message
-      });
-    } else {
-      // 已发送响应则通过SSE返回错误
-      res.write(`data: ${JSON.stringify({type:'error',data:{message:'系统错误: '+error.message}})}\n\n`);
-      res.end();
-    }
+    return res.status(500).json({
+      code: 500,
+      message: '发送消息失败: ' + error.message
+    });
   }
 };
 
