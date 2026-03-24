@@ -1,4 +1,5 @@
 const Message = require('../models/Message');
+const aiService = require('../services/aiService');
 
 /**
  * 发送消息
@@ -31,8 +32,41 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // 获取 AI 回复（模拟或调用真实 AI 服务）
-    const aiReply = await getAIReply(msgContent);
+    // 获取完整的对话历史（最近 20 条消息用于上下文）
+    const conversationHistory = await Message.findByUserId(userId, 1, 100);
+    const recentMessages = conversationHistory.records || [];
+    
+    // 构建 ChatGPT 格式的消息历史（用于千问 API）
+    const messages = [];
+    
+    // 添加系统消息
+    messages.push({
+      role: 'system',
+      content: '你是一个友善、富有同理心的心理健康咨询助手。你的目标是帮助用户理解他们的感受，提供支持和建议。请用温暖、非评判性的语言回应。'
+    });
+
+    // 添加历史消息（最多取最近 10 条，避免上下文过长）
+    const historyToUse = recentMessages.slice(0, 10).reverse();
+    for (const msg of historyToUse) {
+      if (msg.id !== userMessage.id) {  // 不包含当前正在发送的新消息
+        messages.push({
+          role: msg.fromUserId === 0 ? 'assistant' : 'user',
+          content: msg.msgContent || msg.content
+        });
+      }
+    }
+
+    // 添加当前用户消息
+    messages.push({
+      role: 'user',
+      content: msgContent
+    });
+
+    // 调用千问 AI 获取回复
+    const aiReply = await aiService.chat(messages, {
+      temperature: 0.7,
+      max_tokens: 500
+    });
 
     // 保存 AI 回复消息
     const aiMessage = await Message.create({
@@ -109,55 +143,3 @@ exports.getMessageList = async (req, res) => {
     });
   }
 };
-
-/**
- * 获取 AI 回复
- * 这里实现简单的模拟 AI 回复
- * 真实场景可以调用真实 AI 服务（如 OpenAI、讯飞等）
- */
-async function getAIReply(userMessage) {
-  // 模拟 AI 回复
-  const replies = [
-    '我理解你的感受。你想和我聊些什么呢？',
-    '这听起来很有趣。你能告诉我更多信息吗？',
-    '我想更好地理解你的想法。能详细解释一下吗？',
-    '你这样想是很正常的。你有什么其他的想法吗？',
-    '感谢你的分享。这对我们的对话很有帮助。',
-    '我们一起分析一下这个问题的不同角度。',
-    '你是否考虑过这个问题的另一个方面呢？',
-    '通过你的描述，我能感受到你的真实想法。',
-    '你觉得什么时候开始感受到这种变化的？',
-    '这是一个很好的观点。你能进一步说明吗？'
-  ];
-
-  // 随机返回一个回复
-  return replies[Math.floor(Math.random() * replies.length)];
-}
-
-// 如果要集成真实 AI 服务（例如 OpenAI）
-// async function getAIReplyFromOpenAI(userMessage) {
-//   try {
-//     const response = await fetch('https://api.openai.com/v1/chat/completions', {
-//       method: 'POST',
-//       headers: {
-//         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-//         'Content-Type': 'application/json'
-//       },
-//       body: JSON.stringify({
-//         model: 'gpt-3.5-turbo',
-//         messages: [
-//           { role: 'system', content: '你是一个心理健康咨询助手，提供友好和有帮助的回复。' },
-//           { role: 'user', content: userMessage }
-//         ],
-//         temperature: 0.7,
-//         max_tokens: 200
-//       })
-//     });
-//
-//     const data = await response.json();
-//     return data.choices[0].message.content;
-//   } catch (error) {
-//     console.error('OpenAI API 错误:', error);
-//     return '抱歉，我现在无法响应。请稍后再试。';
-//   }
-// }
