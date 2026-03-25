@@ -1,333 +1,103 @@
 # Warm-Mate 后端服务器
 
-🧠 **完整的Node.js心理健康平台后端** — 用户认证、AI对话、心理预约、在线问卷等完整解决方案
-
-> **当前版本**: v1.0.3 | **最后更新**: 2026年3月25日
-
----
-
-## 📦 核心功能
-
-| 功能模块 | 描述 |
-|--------|------|
-| **👤 用户系统** | 注册、登录、个人资料管理、登录日志 |
-| **💬 AI聊天** | 接入阿里云千问AI，提供心理咨询辅助 |
-| **📋 心理问卷** | PHQ-9抑郁筛查、GAD-7焦虑筛查，自动评分 |
-| **📅 心理预约** | 用户预约心理咨询服务 |
-| **📱 短信验证** | 阿里云DYPNS集成，短信验证码、密码重置 |
-| **🔐 JWT认证** | 安全的令牌认证，权限管理 |
-
----
+完整的Node.js + Express + MySQL后端解决方案，提供用户认证、AI交流、心理预约等功能。
 
 ## 📋 项目结构
 
 ```
 warm-mate-server/
-├── app.js                      # Express应用入口
-├── package.json               # 依赖配置
-├── .env.example               # 环境变量模板
-│
+├── app.js                      # Express主应用
+├── package.json               # 项目依赖配置
+├── .env.example               # 环境变量示例
 ├── config/
-│   └── database.js            # 数据库连接配置
-│
-├── models/                     # 数据模型（MVC模式）
+│   ├── database.js            # 数据库连接配置
+│   └── env.js                 # 环境变量管理
+├── models/
 │   ├── User.js                # 用户数据模型
-│   ├── LoginLog.js            # 登录日志
-│   ├── Conversation.js        # AI对话记录
-│   ├── Message.js             # 对话消息
-│   ├── Appointment.js         # 心理预约
-│   └── QuestionnaireResult.js # 问卷结果
-│
-├── controllers/               # 业务逻辑
-│   ├── userController.js      # 用户服务
-│   ├── messageController.js   # 消息/AI服务
-│   ├── conversationController.js # 对话管理
-│   ├── appointmentController.js  # 预约管理
-│   └── questionnaireController.js # 问卷管理
-│
-├── routes/                    # API路由
-│   ├── auth.js               # 认证路由
-│   ├── message.js            # 消息路由
-│   ├── conversation.js       # 对话路由
-│   ├── appointment.js        # 预约路由
-│   └── questionnaire.js      # 问卷路由
-│
+│   ├── LoginLog.js            # 登录日志数据模型
+│   ├── Conversation.js        # AI对话数据模型
+│   ├── Message.js             # 聊天消息数据模型
+│   └── Appointment.js         # 心理预约数据模型
+├── controllers/
+│   ├── userController.js      # 用户业务逻辑
+│   ├── messageController.js   # 消息和AI交流逻辑
+│   ├── conversationController.js  # 对话管理逻辑
+│   └── appointmentController.js   # 预约管理逻辑
+├── routes/
+│   ├── auth.js                # 认证相关路由
+│   ├── message.js             # 消息和AI相关路由
+│   ├── conversation.js        # 对话管理路由
+│   └── appointment.js         # 预约管理路由
 ├── middleware/
-│   └── auth.js               # JWT验证中间件
-│
-├── services/                 # 外部服务
-│   ├── aiService.js          # 千问AI集成
-│   └── smsService.js         # SMS短信服务
-│
-├── sql/                      # 数据库文件
-│   ├── init.sql              # 初始化脚本
-│   └── migrations/           # 迁移脚本
-│       ├── 001_add_avatar_to_users.sql
-│       ├── 002_change_avatar_url_to_longtext.sql
-│       ├── 003_update_questionnaire_results_table.sql
-│       ├── 004_create_appointments_table.sql
+│   └── auth.js                # JWT认证中间件
+├── services/
+│   └── aiService.js           # 千问AI服务集成
+├── sql/
+│   ├── init.sql               # 数据库初始化脚本
+│   └── migrations/            # 数据库迁移脚本
 │       └── 005_add_user_id_to_appointments.sql
-│
-├── README.md                 # 📍 本文件
-├── QUICKSTART.md             # 快速部署指南
-├── DEPLOYMENT.md             # 完整部署文档
-├── API.md                    # API详细文档
-├── INTEGRATION.md            # 前后端集成指南
-└── SMS_PASSWORD_RESET.md     # 短信验证功能文档
+└── README.md                  # 项目文档
 ```
-
----
 
 ## 🚀 快速开始（本地开发）
 
-### 环境要求
-- **Node.js**: v16+
-- **npm**: v8+
-- **MySQL**: v5.7+
-
-### 步骤
-
-**1️⃣ 安装依赖**
+### 1. 安装依赖
 ```bash
 npm install
 ```
 
-**2️⃣ 环境配置**
+### 2. 配置环境变量
 ```bash
 cp .env.example .env
 ```
 
-编辑 `.env` 文件，配置必要的变量（详见本文档末尾）
+编辑 `.env` 文件，配置数据库和AI API信息：
+```
+DB_HOST=localhost
+DB_USER=warmmate
+DB_PASSWORD=warmmate123@
+DB_NAME=warm_mate
+PORT=7001
+JWT_SECRET=your_secret_key_here
+JWT_EXPIRES_IN=7d
 
-**3️⃣ 初始化数据库**
+# 千问AI配置
+QIANWEN_API_KEY=your_api_key_here
+QIANWEN_MODEL=qwen-plus
+```
+
+### 3. 初始化数据库
 ```bash
 mysql -u root -p < sql/init.sql
 ```
 
-**4️⃣ 启动服务**
+### 4. 启动开发服务器
 ```bash
-# 开发环境（支持热重载）
 npm run dev
-
-# 生产环境
-npm start
 ```
 
-服务器运行在 `http://localhost:7001`
+服务器将运行在 `http://localhost:7001`
 
----
+## 📡 API 端点
 
-## 🌐 API 概览
-
-**基础URL**: `http://localhost:7001/alibaba-ai/v1`
-
-**完整 API 文档请查看** [API.md](API.md)
-
-### 核心端点速查
-
-| 方法 | 端点 | 认证 | 说明 |
-|------|------|------|------|
-| `POST` | `/register` | ❌ | 用户注册 |
-| `POST` | `/login` | ❌ | 用户登录 |
-| `GET` | `/user/info` | ✅ | 获取用户信息 |
-| `PUT` | `/user/info` | ✅ | 更新用户信息 |
-| `POST` | `/message` | ✅ | 发送消息/AI对话 |
-| `GET` | `/conversation/:id/messages` | ✅ | 获取对话消息 |
-| `POST` | `/appointment/create` | ✅ | 创建预约 |
-| `POST` | `/questionnaire/phq9` | ✅ | 提交PHQ-9问卷 |
-| `POST` | `/user/password/reset-code` | ❌ | 请求密码重置验证码 |
-
-详细文档见 [API.md](API.md)
-
----
-
-## ⚙️ 环境变量配置
-
-创建 `.env` 文件并配置以下变量：
-
-```bash
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=warmmate
-DB_PASSWORD=warmmate123@
-DB_NAME=warm_mate
-
-# 服务器配置
-PORT=7001
-NODE_ENV=development
-API_PREFIX=/alibaba-ai/v1
-
-# JWT认证
-JWT_SECRET=your-secure-random-key-here
-JWT_EXPIRES_IN=7d
-
-# 阿里云千问AI
-QIANWEN_API_KEY=your_dashscope_api_key
-QIANWEN_MODEL=qwen-plus
-
-# 阿里云短信服务（SMS）
-ALIBABA_CLOUD_ACCESS_KEY_ID=your_access_key_id
-ALIBABA_CLOUD_ACCESS_KEY_SECRET=your_access_key_secret
-SMS_SIGN_NAME=your_sign_name
-SMS_TEMPLATE_CODE=your_template_code
+### 基础URL
+```
+http://localhost:7001/alibaba-ai/v1
 ```
 
----
+### 用户认证接口
 
-## 📚 完整文档导航
-
-| 文档 | 用途 |
-|-----|------|
-| [API.md](API.md) | 📖 完整API参考文档 |
-| [QUICKSTART.md](QUICKSTART.md) | ⚡ 5分钟本地开发或1小时ECS部署 |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | 🚀 详细的阿里云ECS部署步骤 |
-| [INTEGRATION.md](INTEGRATION.md) | 🔗 前后端集成指南（Uni-app） |
-| [SMS_PASSWORD_RESET.md](SMS_PASSWORD_RESET.md) | 📱 短信验证和密码重置功能 |
-
----
-
-## 🔒 安全特性
-
-### 身份认证
-- **JWT令牌认证**: 安全的token-based认证
-- **密码加密**: bcryptjs加密存储
-- **有效期**: 默认7天
-
-### 数据保护
-- **参数化查询**: 防止SQL注入
-- **访问控制**: 用户只能访问自己的数据
-- **CORS配置**: 跨域资源共享安全管理
-
-### 密码安全
-- 长度: 6-16字符
-- 支持: 字母、数字、特殊符号
-- 密码修改需验证旧密码
-
----
-
-## 🗄️ 数据库模式
-
-### 核心表结构
-```sql
--- 用户表
-users (id, username, password, phone, email, avatar_url, created_at, updated_at)
-
--- 登录日志表
-login_logs (id, user_id, ip_address, device_info, user_agent, login_time)
-
--- AI对话表
-conversations (id, user_id, title, created_at, updated_at)
-
--- 对话消息表
-messages (id, conversation_id, user_id, content, message_type, created_at)
-
--- 心理预约表
-appointments (id, user_id, doctor_id, doctor_name, patient_name, ...)
-
--- 问卷结果表
-questionnaire_results (id, user_id, questionnaire_name, score, level, result_data, created_at)
+#### 注册
 ```
+POST /register
+Content-Type: application/json
 
-详见 [sql/init.sql](sql/init.sql)
-
----
-
-## 🛠️ 开发工具命令
-
-```bash
-# 开发环境（热重载）
-npm run dev
-
-# 生产环境
-npm start
-
-# 安装依赖
-npm install
-
-# 检查版本
-node -v && npm -v && mysql --version
-```
-
----
-
-## 📞 技术栈
-
-- **后端框架**: Express.js 4.18
-- **数据库**: MySQL 5.7+
-- **认证**: JWT (jsonwebtoken)
-- **密码加密**: bcryptjs
-- **AI服务**: 阿里云千问 (Qiwen)
-- **SMS服务**: 阿里云DYPNS
-- **中间件**: CORS, body-parser, multer
-- **开发工具**: nodemon
-
----
-
-## 📊 项目状态
-
-| 功能 | 状态 |
-|-----|------|
-| 用户认证 | ✅ 完成 |
-| 用户信息管理 | ✅ 完成 |
-| JWT认证 | ✅ 完成 |
-| 登录日志 | ✅ 完成 |
-| AI聊天集成 | ✅ 完成（千问） |
-| 对话管理 | ✅ 完成 |
-| 消息历史 | ✅ 完成 |
-| 心理预约 | ✅ 完成 |
-| 问卷系统 | ✅ 完成 |
-| SMS短信验证 | ✅ 完成（DYPNS） |
-| 密码重置 | ✅ 完成 |
-| 头像上传 | ✅ 完成 |
-
----
-
-## 🚀 快速开始
-
-**想快速上手?** 前往 [QUICKSTART.md](QUICKSTART.md)
-
-**想了解完整API?** 查看 [API.md](API.md)
-
-**需要部署到云服务器?** 参照 [DEPLOYMENT.md](DEPLOYMENT.md)
-
----
-
-## 💡 常见问题
-
-### Q: 如何修改数据库密码？
-A: 编辑 `.env` 文件中的 `DB_PASSWORD` 字段
-
-### Q: 如何新增一个API接口？
-A: 
-1. 在 `controllers/` 创建控制器方法
-2. 在 `routes/` 添加路由
-3. 在 [API.md](API.md) 中文档化
-
-### Q: Token过期了怎么办？
-A: 用户需重新登录获取新token。使用 `/login` 接口
-
-### Q: 如何自定义AI模型？
-A: 编辑 `services/aiService.js`，修改 `QIANWEN_MODEL` 环境变量
-
----
-
-## 📝 版本历史
-
-- **v1.0.3** (2026-03-25) - 文档完善、API规范统一
-- **v1.0.2** (2026-03-22) - 添加短信验证功能
-- **v1.0.1** (2026-03-21) - 初始版本发布
-- **v1.0.0** (2026-03-20) - 项目启动
-
----
-
-## 📄 许可证
-
-ISC License
-
----
-
-**需要帮助?** 查看完整文档或联系开发团队
+{
+  "username": "张三",
+  "password": "password123",
+  "phone": "13800138000",
+  "email": "zhangsan@example.com"
+}
 
 成功响应 (201):
 {
