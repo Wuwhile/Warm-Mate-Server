@@ -1,4 +1,4 @@
-# 📡 Warm-Mate API完整文档
+# Warm-Mate API完整文档
 
 **基础URL**: `http://localhost:7001/alibaba-ai/v1`
 
@@ -6,7 +6,7 @@
 
 ---
 
-## 📝 API响应格式
+## API响应格式
 
 所有API响应都遵循统一的JSON格式：
 
@@ -260,9 +260,9 @@ Content-Type: application/json
 
 ---
 
-## 📝 登录日志接口
+## 登录日志接口
 
-### 1. 获取登录日志列表 ✅认证
+### 1. 获取登录日志列表 (认证)
 
 ```http
 GET /user/login-logs?page=1&limit=10
@@ -301,7 +301,7 @@ Authorization: Bearer <token>
 
 ---
 
-## 💬 AI聊天与消息接口
+## AI聊天与消息接口
 
 ### 1. 创建对话
 
@@ -602,7 +602,7 @@ Authorization: Bearer <token>
 
 ---
 
-## 📋 问卷管理接口
+## 问卷管理接口
 
 ### 1. 提交 PHQ-9 问卷
 

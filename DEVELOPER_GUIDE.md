@@ -51,7 +51,7 @@ warm-mate-server/
 
 ---
 
-## 🔄 请求流程
+## 请求流程
 
 ```
 请求 →  路由 (routes/) 
@@ -382,7 +382,7 @@ npm outdated  # 查看过期的包
 
 ---
 
-## 🔐 安全最佳实践
+## 安全最佳实践
 
 ### 1. 参数验证
 
@@ -399,13 +399,13 @@ if (!username || !password) {
 ### 2. SQL注入防护
 
 ```javascript
-// ✅ 正确：使用参数化查询
+// 正确：使用参数化查询
 const [user] = await pool.query(
   'SELECT * FROM users WHERE username = ?',
   [username]
 );
 
-// ❌ 错误：字符串拼接
+// 错误：字符串拼接
 const user = await pool.query(
   `SELECT * FROM users WHERE username = '${username}'`
 );
@@ -426,16 +426,16 @@ const isValid = await bcrypt.compare(inputPassword, hashedPassword);
 ### 4. 错误消息
 
 ```javascript
-// ❌ 不要暴露敏感信息
+// 不要暴露敏感信息
 res.json({ message: err.message });  // "database connection failed"
 
-// ✅ 返回通用错误
+// 返回通用错误
 res.json({ message: '服务器错误' });
 ```
 
 ---
 
-## 📝 代码规范
+## 代码规范
 
 ### 命名规范
 
@@ -484,7 +484,7 @@ static async getUserInfo(userId) {
 
 ---
 
-## 🚀 部署前检查清单
+## 部署前检查清单
 
 - [ ] 代码测试通过
 - [ ] 没有 `console.log` 调试语句

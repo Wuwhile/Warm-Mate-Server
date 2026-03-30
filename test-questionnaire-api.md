@@ -1,4 +1,4 @@
-# 📋 问卷API测试指南
+# 问卷API测试指南
 
 本文档提供问卷相关API的详细测试步骤和示例。
 
@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 快速开始
+## 快速开始
 
 ### 前置条件
 
@@ -67,7 +67,7 @@ $token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
 ---
 
-## 📋 PHQ-9 抑郁筛查问卷测试
+## PHQ-9 抑郁筛查问卷测试
 
 PHQ-9是一个9条题目的抑郁症筛查量表。
 
@@ -110,12 +110,12 @@ curl -X POST http://localhost:7001/alibaba-ai/v1/questionnaire/phq9 \
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| questionnaireName | string | ✅ | 问卷名称 |
-| questionnaireType | string | ✅ | 问卷类型（phq9） |
-| answers | array[int] | ✅ | 9道题目的答案（0-3） |
-| score | int | ✅ | 总得分（0-27） |
-| depressionLevel | string | ✅ | 严重等级 |
-| levelDescription | text | ✅ | 等级描述 |
+| questionnaireName | string | 是 | 问卷名称 |
+| questionnaireType | string | 是 | 问卷类型（phq9） |
+| answers | array[int] | 是 | 9道题目的答案（0-3） |
+| score | int | 是 | 总得分（0-27） |
+| depressionLevel | string | 是 | 严重等级 |
+| levelDescription | text | 是 | 等级描述 |
 
 **得分对照:**
 
@@ -353,7 +353,7 @@ curl -X POST http://localhost:7001/alibaba-ai/v1/questionnaire/phq9 \
 
 ---
 
-## 📝 完整工作流示例
+## 完整工作流示例
 
 ```bash
 # 1. 注册账户
