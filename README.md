@@ -644,10 +644,6 @@ Content-Type: application/json
 ### messages 表
 存储用户消息
 
-## 部署到云服务器
-
-详见 [DEPLOYMENT.md](DEPLOYMENT.md) 或本目录下的部署指南。
-
 ## 环境变量说明
 
 | 变量 | 默认值 | 说明 |
